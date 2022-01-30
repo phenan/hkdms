@@ -5,7 +5,10 @@ import com.phenan.hkdms.hkd.HKD
 import com.phenan.hkdms.iso.Iso
 import com.phenan.hkdms.iso.given
 
+import com.phenan.hkdms.example.hogeGeneric
+
 case class Foo(i: Int, s: String)
+case class Bar(foo: Foo)
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -34,5 +37,7 @@ object Main {
     println(s3)
 
     val iso = summon[Iso[Foo, (Int, String)]]
+
+    println(hogeGeneric)
   }
 }

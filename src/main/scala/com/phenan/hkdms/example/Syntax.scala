@@ -1,6 +1,6 @@
 package com.phenan.hkdms.example
 
-import com.phenan.hkdms.free.FreeSRI
+import com.phenan.hkdms.free.{FreeSRI, Generic, *}
 import com.phenan.hkdms.free.syntax.FreeSRISyntax.*
 import com.phenan.hkdms.iso.given
 
@@ -40,3 +40,5 @@ val hogeSyntax: Syntax[Hoge] = union[Hoge] {
     *: barSyntax
     *: nil
 }
+
+val hogeGeneric: FreeSRI[Generic, Hoge] = summon[FreeSRI[Generic, Hoge]]
