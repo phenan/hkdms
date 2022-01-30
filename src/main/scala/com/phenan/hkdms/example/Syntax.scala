@@ -1,6 +1,7 @@
 package com.phenan.hkdms.example
 
 import com.phenan.hkdms.free.FreeSRI
+import com.phenan.hkdms.free.syntax.FreeSRISyntax.*
 import com.phenan.hkdms.iso.given
 
 sealed trait SyntaxElem [T]
@@ -14,28 +15,28 @@ object SyntaxElem {
 type Syntax[T] = FreeSRI[SyntaxElem, T]
 
 object Syntax {
-  def keyword(str: String) = FreeSRI.Impure(SyntaxElem.Keyword(str))
-  val stringLit = FreeSRI.Impure(SyntaxElem.StringLit)
-  val integerLit = FreeSRI.Impure(SyntaxElem.IntegerLit)
+  def keyword(str: String) = impure(SyntaxElem.Keyword(str))
+  val stringLit = impure(SyntaxElem.StringLit)
+  val integerLit = impure(SyntaxElem.IntegerLit)
 }
 
 sealed trait Hoge
 case class Foo(i: Int, s: String) extends Hoge
 case class Bar(x: String) extends Hoge
 
-val fooSyntax: Syntax[Foo] = FreeSRI.struct[Foo] {
+val fooSyntax: Syntax[Foo] = struct[Foo] {
   (Syntax.keyword("i") *>: Syntax.integerLit)
     *: (Syntax.keyword("s") *>: Syntax.stringLit)
-    *: FreeSRI.nil
+    *: nil
 }
 
-val barSyntax: Syntax[Bar] = FreeSRI.struct[Bar] {
+val barSyntax: Syntax[Bar] = struct[Bar] {
   (Syntax.keyword("x") *>: Syntax.stringLit)
-    *: FreeSRI.nil
+    *: nil
 }
 
-val hogeSyntax: Syntax[Hoge] = FreeSRI.union[Hoge] {
+val hogeSyntax: Syntax[Hoge] = union[Hoge] {
   fooSyntax
     *: barSyntax
-    *: FreeSRI.nil
+    *: nil
 }
