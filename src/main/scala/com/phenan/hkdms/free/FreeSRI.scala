@@ -3,7 +3,7 @@ package com.phenan.hkdms.free
 import com.phenan.hkdms.iso.*
 import com.phenan.hkdms.iso.given
 import com.phenan.hkdms.SemiringalInvariant
-import com.phenan.hkdms.util.TupleMaps
+import com.phenan.hkdms.util.{IndexedUnion, TupleMaps}
 
 sealed trait FreeSRI [F[_], T] {
   def foldMap[G[_]](f: [a] => F[a] => G[a])(using SemiringalInvariant[G]): G[T]
@@ -26,8 +26,8 @@ object FreeSRI {
       semiringalInvariant.product(TupleMaps.map(tuple)([t] => (ft: FreeSRI[F, t]) => ft.foldMap(f)))
     }
   }
-  case class Union[F[_], T <: Tuple] (tuple: Tuple.Map[T, [t] =>> FreeSRI[F, t]]) extends FreeSRI[F, Tuple.Union[T]] {
-    def foldMap[G[_]](f: [a] => F[a] => G[a])(using semiringalInvariant: SemiringalInvariant[G]): G[Tuple.Union[T]] = {
+  case class Union[F[_], T <: Tuple] (tuple: Tuple.Map[T, [t] =>> FreeSRI[F, t]]) extends FreeSRI[F, IndexedUnion[T]] {
+    def foldMap[G[_]](f: [a] => F[a] => G[a])(using semiringalInvariant: SemiringalInvariant[G]): G[IndexedUnion[T]] = {
       semiringalInvariant.sum[T](TupleMaps.map(tuple)([t] => (ft: FreeSRI[F, t]) => ft.foldMap(f)))
     }
   }

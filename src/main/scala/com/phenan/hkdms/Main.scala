@@ -1,14 +1,11 @@
 package com.phenan.hkdms
 
 import com.phenan.hkdms.data.*
+import com.phenan.hkdms.free.*
 import com.phenan.hkdms.hkd.HKD
 import com.phenan.hkdms.iso.Iso
 import com.phenan.hkdms.iso.given
-
-import com.phenan.hkdms.example.hogeGeneric
-
-case class Foo(i: Int, s: String)
-case class Bar(foo: Foo)
+import com.phenan.hkdms.example.*
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -36,8 +33,8 @@ object Main {
     println(i3)
     println(s3)
 
-    val iso = summon[Iso[Foo, (Int, String)]]
+    val printer: Printer[Hoge] = hogeSyntax.foldMap[Printer](Printer.deriveFromSyntax)
 
-    println(hogeGeneric)
+    println(printer.show(Foo(10, "hoge")))
   }
 }

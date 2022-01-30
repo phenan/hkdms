@@ -1,5 +1,7 @@
 package com.phenan.hkdms.iso
 
+import com.phenan.hkdms.util.IndexedUnion
+
 import scala.deriving.*
 
 given [T <: Product, U <: Tuple] (using mirror: Mirror.ProductOf[T], proof: mirror.MirroredElemTypes =:= U): Iso[T, U] = {
@@ -8,8 +10,8 @@ given [T <: Product, U <: Tuple] (using mirror: Mirror.ProductOf[T], proof: mirr
   Iso(to, from)
 }
 
-given [T, U <: Tuple] (using mirror: Mirror.SumOf[T], proof: mirror.MirroredElemTypes =:= U): Iso[T, Tuple.Union[U]] = {
-  val to = (value: T) => value.asInstanceOf[Tuple.Union[U]]
-  val from = (underlying: Tuple.Union[U]) => underlying.asInstanceOf[T]
+given [T, U <: Tuple] (using mirror: Mirror.SumOf[T], proof: mirror.MirroredElemTypes =:= U): Iso[T, IndexedUnion[U]] = {
+  val to = (value: T) => IndexedUnion(value.asInstanceOf[Tuple.Union[U]], mirror.ordinal(value))
+  val from = (underlying: IndexedUnion[U]) => underlying.value.asInstanceOf[T]
   Iso(to, from)
 }
