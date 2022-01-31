@@ -1,6 +1,7 @@
 package com.phenan.hkdms
 
-import com.phenan.hkdms.data.*
+import cats.Id
+
 import com.phenan.hkdms.free.*
 import com.phenan.hkdms.hkd.HKD
 import com.phenan.hkdms.iso.Iso
@@ -9,7 +10,7 @@ import com.phenan.hkdms.example.*
 
 object Main {
   def main(args: Array[String]): Unit = {
-    val hkd1: HKD[Foo, Identity] = HKD.fromProduct(Foo(1, "one"))
+    val hkd1: HKD[Foo, Id] = HKD.fromProduct(Foo(1, "one"))
 
     val i: Int = hkd1.i
     val s: String =  hkd1.s
@@ -26,7 +27,7 @@ object Main {
     println(i2)
     println(s2)
 
-    val hkd3 = hkd1.map([t] => (fa: Identity[t]) => Right(fa): Either[Nothing, t])
+    val hkd3 = hkd1.map([t] => (fa: Id[t]) => Right(fa): Either[Nothing, t])
     val i3: Either[Nothing, Int] = hkd3.i
     val s3: Either[Nothing, String] = hkd3.s
 

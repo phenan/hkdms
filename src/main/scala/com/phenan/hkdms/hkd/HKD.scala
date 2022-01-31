@@ -1,6 +1,7 @@
 package com.phenan.hkdms.hkd
 
-import com.phenan.hkdms.data.Identity
+import cats.Id
+
 import com.phenan.hkdms.util.*
 
 import scala.deriving.Mirror
@@ -13,8 +14,8 @@ trait HKD [R <: Product, F[_]] extends Dynamic {
 }
 
 object HKD {
-  def fromProduct[R <: Product](value: R)(using mirror: Mirror.ProductOf[R]): HKD[R, Identity] = {
-    new HKDImpl(Tuple.fromProductTyped(value).map[Identity]([t] => (v: t) => v))
+  def fromProduct[R <: Product](value: R)(using mirror: Mirror.ProductOf[R]): HKD[R, Id] = {
+    new HKDImpl(Tuple.fromProductTyped(value).map[Id]([t] => (v: t) => v))
   }
 
   def fromTuple[R <: Product, F[_]](using mirror: Mirror.ProductOf[R])(tuple: Tuple.Map[mirror.MirroredElemTypes, F]): HKD[R, F] = {
