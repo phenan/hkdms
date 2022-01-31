@@ -5,8 +5,8 @@ import com.phenan.hkdms.util.IndexedUnion
 import scala.deriving.*
 
 given [T <: Product, U <: Tuple] (using mirror: Mirror.ProductOf[T], proof: mirror.MirroredElemTypes =:= U): Iso[T, U] = {
-  val to = (value: T) => mirror.fromProduct(value).asInstanceOf[U]
-  val from = (underlying: U) => Tuple.fromProduct(underlying).asInstanceOf[T]
+  val to = (value: T) => proof(Tuple.fromProductTyped(value))
+  val from = (underlying: U) => mirror.fromProduct(underlying)
   Iso(to, from)
 }
 

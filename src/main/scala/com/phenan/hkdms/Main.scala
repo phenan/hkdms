@@ -36,5 +36,11 @@ object Main {
     val printer: Printer[Hoge] = hogeSyntax.foldMap[Printer](Printer.deriveFromSyntax)
 
     println(printer.show(Foo(10, "hoge")))
+
+    val parser: Parser[Hoge] = hogeSyntax.foldMap[Parser](Parser.deriveFromSyntax)
+    val result: Option[Hoge] = parser.runA(List(Token.Keyword("x"), Token.StrLit("hogehoge")))
+    println(result)
+
+    println(Some(Bar("hogehoge")) == result)
   }
 }
