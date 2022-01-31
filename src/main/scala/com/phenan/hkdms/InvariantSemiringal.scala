@@ -4,7 +4,7 @@ import cats.Alternative
 import com.phenan.hkdms.iso.*
 import com.phenan.hkdms.util.IndexedUnion
 
-trait SemiringalInvariant [F[_]] {
+trait InvariantSemiringal [F[_]] {
   def pure [A] (a: => A): F[A]
   def product [T <: Tuple] (tupleMap: Tuple.Map[T, F]): F[T]
   def sum [T <: Tuple] (tupleMap: Tuple.Map[T, F]): F[IndexedUnion[T]]
@@ -12,8 +12,8 @@ trait SemiringalInvariant [F[_]] {
   def imap [A, B] (iso: A <=> B): F[A] => F[B]
 }
 
-object SemiringalInvariant {
-  given [F[_]] (using alternative: Alternative[F]): SemiringalInvariant[F] = new SemiringalInvariant[F] {
+object InvariantSemiringal {
+  given [F[_]] (using alternative: Alternative[F]): InvariantSemiringal[F] = new InvariantSemiringal[F] {
     override def pure[A](a: => A): F[A] = alternative.pure(a)
     @annotation.nowarn
     override def product[T <: Tuple](tupleMap: Tuple.Map[T, F]): F[T] = {

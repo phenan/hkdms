@@ -1,7 +1,7 @@
 package com.phenan.hkdms.example
 
 import com.phenan.hkdms.iso.*
-import com.phenan.hkdms.SemiringalInvariant
+import com.phenan.hkdms.InvariantSemiringal
 import com.phenan.hkdms.free.{FreeSRI, Generic}
 import com.phenan.hkdms.util.*
 
@@ -16,7 +16,7 @@ object Printer {
     }
   }
 
-  given SemiringalInvariant[Printer] = new SemiringalInvariant[Printer] {
+  given InvariantSemiringal[Printer] = new InvariantSemiringal[Printer] {
     override def pure[A](a: => A): Printer[A] = {
       Printer[A] (value => "")
     }
