@@ -7,11 +7,13 @@ import com.phenan.hkdms.util.*
 import scala.deriving.Mirror
 
 sealed trait HKTree [R, F[_]] {
+  def map [U] (f: R => U) : HKTree[U, F] = HKMapped(this, f)
+
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKTree[R, G]
 
-  def fold (using applicative: Applicative[F]): F[R]
+  def widen [U >: R] : HKTree[U, F] = map(identity)
 
-  def widen [U >: R] : HKTree[U, F] = HKMapped(this, identity)
+  def fold (using applicative: Applicative[F]): F[R]
 }
 
 case class HKProduct [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKTree[e, F]])(using mirror: Mirror.ProductOf[R]) extends HKTree[R, F] {
