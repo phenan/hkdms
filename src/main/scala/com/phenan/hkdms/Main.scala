@@ -2,10 +2,12 @@ package com.phenan.hkdms
 
 import cats.Id
 import com.phenan.hkdms.free.*
-import com.phenan.hkdms.hkd.{HKValue, *}
-import com.phenan.hkdms.iso.Iso
-import com.phenan.hkdms.iso
+import com.phenan.hkdms.hkd.*
 import com.phenan.hkdms.example.*
+
+given [T, F[_]] : Conversion[F[T], Tuple.Map[T *: EmptyTuple, F]] = {
+  _ *: EmptyTuple
+}
 
 object Main {
   def main(args: Array[String]): Unit = {
@@ -17,13 +19,11 @@ object Main {
     println(i)
     println(s)
 
-    val hkd2 = HKD[Foo, Option](Some(1), Some("string"))
+    val hkd2 = HKD[Bar, Option](Some("string"))
 
-    val i2: Option[Int] = hkd2.i
-    val s2: Option[String] = hkd2.s
+    val x: Option[String] = hkd2.x
 
-    println(i2)
-    println(s2)
+    println(x)
 
     val hkd3 = hkd1.map([t] => (fa: Id[t]) => Right(fa): Either[Nothing, t])
     val i3: Either[Nothing, Int] = hkd3.i

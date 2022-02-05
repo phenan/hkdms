@@ -1,7 +1,6 @@
 package com.phenan.hkdms.hkd
 
 import cats.Id
-
 import com.phenan.hkdms.util.*
 
 import scala.deriving.Mirror
