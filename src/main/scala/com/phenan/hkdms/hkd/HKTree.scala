@@ -14,6 +14,8 @@ sealed trait HKTree [R, F[_]] {
   def widen [U >: R] : HKTree[U, F] = map(identity)
 
   def fold (using applicative: Applicative[F]): F[R]
+
+  def foldMap [G[_]](compiler: [t] => F[t] => G[t])(using applicative: Applicative[G]): G[R] = hmap(compiler).fold
 }
 
 case class HKProduct [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKTree[e, F]])(using mirror: Mirror.ProductOf[R]) extends HKTree[R, F] {
