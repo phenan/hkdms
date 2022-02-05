@@ -9,7 +9,7 @@ import com.phenan.hkdms.example.*
 
 object Main {
   def main(args: Array[String]): Unit = {
-    val hkd1: HKD[Foo, Id] = HKD.fromProduct(Foo(1, "one"))
+    val hkd1: HKD[Foo, Id] = HKDOf[Foo, Id](1, "one")
 
     val i: Int = hkd1.i
     val s: String =  hkd1.s
@@ -17,8 +17,7 @@ object Main {
     println(i)
     println(s)
 
-    val tuple: Tuple.Map[(Int, String), Option] = (Some(1), Some("string"))
-    val hkd2 = HKD.fromTuple[Foo, Option](tuple)
+    val hkd2 = HKDOf[Foo, Option](Some(1), Some("string"))
 
     val i2: Option[Int] = hkd2.i
     val s2: Option[String] = hkd2.s

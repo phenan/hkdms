@@ -15,34 +15,24 @@ trait HKD [R <: Product, F[_]] extends Dynamic {
   def asTuple (using mirror: Mirror.ProductOf[R]): Tuple.Map[mirror.MirroredElemTypes, F]
 }
 
-object HKD {
-  def fromProduct[R <: Product](value: R)(using mirror: Mirror.ProductOf[R]): HKD[R, Id] = {
-    new HKDImpl(Tuple.fromProductTyped(value).map[Id]([t] => (v: t) => v))
+private class HKDImpl [R <: Product, F[_], T <: Tuple] (tuple: Tuple.Map[T, F]) extends HKD[R, F] {
+  def selectDynamic[Tag <: Singleton](tag: Tag)(using mirror: Mirror.ProductOf[R], index: ValueOf[Tuples.IndexOf[mirror.MirroredElemLabels, Tag]]): F[Tuple.Elem[mirror.MirroredElemTypes, Tuples.IndexOf[mirror.MirroredElemLabels, Tag]]] = {
+    tuple.productElement(index.value).asInstanceOf[F[Tuple.Elem[mirror.MirroredElemTypes, Tuples.IndexOf[mirror.MirroredElemLabels, Tag]]]]
   }
-
-  def fromTuple[R <: Product, F[_]](using mirror: Mirror.ProductOf[R])(tuple: Tuple.Map[mirror.MirroredElemTypes, F]): HKD[R, F] = {
-    new HKDImpl(tuple)
+  def map [G[_]](f: [t] => F[t] => G[t]): HKD[R, G] = {
+    new HKDImpl[R, G, T](TupleMaps.map(tuple)(f))
   }
-
-  private class HKDImpl [R <: Product, F[_], T <: Tuple] (tuple: Tuple.Map[T, F]) extends HKD[R, F] {
-    def selectDynamic[Tag <: Singleton](tag: Tag)(using mirror: Mirror.ProductOf[R], index: ValueOf[Tuples.IndexOf[mirror.MirroredElemLabels, Tag]]): F[Tuple.Elem[mirror.MirroredElemTypes, Tuples.IndexOf[mirror.MirroredElemLabels, Tag]]] = {
-      tuple.productElement(index.value).asInstanceOf[F[Tuple.Elem[mirror.MirroredElemTypes, Tuples.IndexOf[mirror.MirroredElemLabels, Tag]]]]
-    }
-    def map [G[_]](f: [t] => F[t] => G[t]): HKD[R, G] = {
-      new HKDImpl[R, G, T](TupleMaps.map(tuple)(f))
-    }
-    def asTuple (using mirror: Mirror.ProductOf[R]): Tuple.Map[mirror.MirroredElemTypes, F] = {
-      tuple.asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, F]]
-    }
+  def asTuple (using mirror: Mirror.ProductOf[R]): Tuple.Map[mirror.MirroredElemTypes, F] = {
+    tuple.asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, F]]
   }
 }
 
 object HKDOf extends Dynamic {
-  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: Tuple.Map[mirror.MirroredElemTypes, F]): HKD[R, F] = HKD.fromTuple(args)
+  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: Tuple.Map[mirror.MirroredElemTypes, F]): HKD[R, F] = new HKDImpl(args)
   def applyDynamicNamed[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(params: Tuple.Zip[mirror.MirroredElemLabels, Tuple.Map[mirror.MirroredElemTypes, F]]): HKD[R, F] = {
     val args = for (i <- 0 until params.size) yield {
       params.productElement(i).asInstanceOf[(_, _)]._2
     }
-    HKD.fromTuple(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, F]])
+    new HKDImpl(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, F]])
   }
 }
