@@ -27,7 +27,7 @@ private class HKDImpl [R <: Product, F[_], T <: Tuple] (tuple: Tuple.Map[T, F]) 
   }
 }
 
-object HKDOf extends Dynamic {
+object HKD extends Dynamic {
   def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: Tuple.Map[mirror.MirroredElemTypes, F]): HKD[R, F] = new HKDImpl(args)
   def applyDynamicNamed[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(params: Tuple.Zip[mirror.MirroredElemLabels, Tuple.Map[mirror.MirroredElemTypes, F]]): HKD[R, F] = {
     val args = for (i <- 0 until params.size) yield {

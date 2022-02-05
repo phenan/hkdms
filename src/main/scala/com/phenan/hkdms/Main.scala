@@ -9,7 +9,7 @@ import com.phenan.hkdms.example.*
 
 object Main {
   def main(args: Array[String]): Unit = {
-    val hkd1: HKD[Foo, Id] = HKDOf[Foo, Id](1, "one")
+    val hkd1: HKD[Foo, Id] = HKD[Foo, Id](1, "one")
 
     val i: Int = hkd1.i
     val s: String =  hkd1.s
@@ -17,7 +17,7 @@ object Main {
     println(i)
     println(s)
 
-    val hkd2 = HKDOf[Foo, Option](Some(1), Some("string"))
+    val hkd2 = HKD[Foo, Option](Some(1), Some("string"))
 
     val i2: Option[Int] = hkd2.i
     val s2: Option[String] = hkd2.s
@@ -42,11 +42,11 @@ object Main {
 
     println(Some(Bar("hogehoge")) == result)
 
-    val foo1 = HKDOf[Foo, Option](i = Some(10), s = Some("string"))
+    val foo1 = HKD[Foo, Option](i = Some(10), s = Some("string"))
 
     println(foo1.i)
 
-    val foo2 = HKDOf[Foo, Option](Some(2), Some("hoge"))
+    val foo2 = HKD[Foo, Option](Some(2), Some("hoge"))
 
     println(foo2.s)
   }
