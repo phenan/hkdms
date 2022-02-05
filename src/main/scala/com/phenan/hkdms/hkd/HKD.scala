@@ -11,6 +11,8 @@ trait HKD [R <: Product, F[_]] extends Dynamic {
   def selectDynamic[Tag <: Singleton](tag: Tag)(using mirror: Mirror.ProductOf[R], index: ValueOf[Tuples.IndexOf[mirror.MirroredElemLabels, Tag]]): F[Tuple.Elem[mirror.MirroredElemTypes, Tuples.IndexOf[mirror.MirroredElemLabels, Tag]]]
 
   def map [G[_]](f: [t] => F[t] => G[t]): HKD[R, G]
+
+  def asTuple (using mirror: Mirror.ProductOf[R]): Tuple.Map[mirror.MirroredElemTypes, F]
 }
 
 object HKD {
@@ -28,6 +30,9 @@ object HKD {
     }
     def map [G[_]](f: [t] => F[t] => G[t]): HKD[R, G] = {
       new HKDImpl[R, G, T](TupleMaps.map(tuple)(f))
+    }
+    def asTuple (using mirror: Mirror.ProductOf[R]): Tuple.Map[mirror.MirroredElemTypes, F] = {
+      tuple.asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, F]]
     }
   }
 }
