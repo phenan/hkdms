@@ -12,38 +12,26 @@ sealed trait HKTree [R, F[_]] {
   def fold (using applicative: Applicative[F]): F[R]
 }
 
-trait HKProduct [R <: Product, F[_]] extends HKTree[R, F] {
-  def map [G[_]](f: [t] => F[t] => G[t]): HKProduct[R, G]
+case class HKProduct [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKTree[e, F]])(using mirror: Mirror.ProductOf[R]) extends HKTree[R, F] {
+  def map [G[_]](f: [t] => F[t] => G[t]): HKProduct[R, G] = {
+    HKProduct(hkd.map([u] => (hkt: HKTree[u, F]) => hkt.map(f)))
+  }
+  def fold (using applicative: Applicative[F]): F[R] = {
+    applicative.map(applicative.productAll(hkd.map[F]([u] => (hkt: HKTree[u, F]) => hkt.fold).asTuple))(mirror.fromProduct)
+  }
+}
+case class HKMapped [T, R, F[_]] (tree: HKTree[T, F], mapper: T => R) extends HKTree[R, F] {
+  def map [G[_]](f: [t] => F[t] => G[t]): HKMapped[T, R, G] = {
+    HKMapped(tree.map(f), mapper)
+  }
+  def fold (using applicative: Applicative[F]): F[R] = {
+    applicative.map(tree.fold)(mapper)
+  }
 }
 trait HKSum [R, F[_]] extends HKTree[R, F] {
   def map [G[_]](f: [t] => F[t] => G[t]): HKSum[R, G]
 }
-trait HKValue [R, F[_]] extends HKTree[R, F] {
-  def value: F[R]
-  def map [G[_]](f: [t] => F[t] => G[t]): HKValue[R, G]
-}
-
-object HKTree {
-  private class HKProductImpl [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKTree[e, F]], mirror: Mirror.ProductOf[R]) extends HKProduct[R, F] {
-    def map [G[_]](f: [t] => F[t] => G[t]): HKProduct[R, G] = {
-      new HKProductImpl(hkd.map([u] => (hkt: HKTree[u, F]) => hkt.map(f)), mirror)
-    }
-    def fold (using applicative: Applicative[F]): F[R] = {
-      applicative.map(applicative.productAll(hkd.map[F]([u] => (hkt: HKTree[u, F]) => hkt.fold).asTuple(using mirror)))(mirror.fromProduct)
-    }
-  }
-  private class HKSumImpl [R, F[_], T <: R] (value: HKTree[T, F]) extends HKSum[R, F] {
-    def map [G[_]](f: [t] => F[t] => G[t]): HKSum[R, G] = {
-      new HKSumImpl[R, G, T](value.map(f))
-    }
-    def fold (using applicative: Applicative[F]): F[R] = {
-      applicative.widen(value.fold)
-    }
-  }
-  private class HKValueImpl [R, F[_]] (val value: F[R]) extends HKValue[R, F] {
-    def map [G[_]](f: [t] => F[t] => G[t]): HKValue[R, G] = {
-      new HKValueImpl(f[R](value))
-    }
-    def fold (using applicative: Applicative[F]): F[R] = value
-  }
+case class HKValue [R, F[_]] (value: F[R]) extends HKTree[R, F] {
+  def map [G[_]](f: [t] => F[t] => G[t]): HKValue[R, G] = HKValue(f[R](value))
+  def fold (using applicative: Applicative[F]): F[R] = value
 }
