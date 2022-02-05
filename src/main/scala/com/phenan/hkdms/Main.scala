@@ -42,7 +42,7 @@ object Main {
 
     println(Some(Bar("hogehoge")) == result)
 
-    val hktree: HKTree[Hoge, Option] = HKProduct[Foo, Option](
+    val hktree: HKTree[Hoge, Option] = HKStruct[Foo, Option](
       i = HKValue(Option(10)),
       s = HKValue(Option("str"))
     ).widen[Hoge]
