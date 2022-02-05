@@ -24,25 +24,25 @@ trait HKValue [R, F[_]] extends HKTree[R, F] {
 }
 
 object HKTree {
-  private class ProductHKTreeImpl [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKTree[e, F]], mirror: Mirror.ProductOf[R]) extends HKProduct[R, F] {
+  private class HKProductImpl [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKTree[e, F]], mirror: Mirror.ProductOf[R]) extends HKProduct[R, F] {
     def map [G[_]](f: [t] => F[t] => G[t]): HKProduct[R, G] = {
-      new ProductHKTreeImpl(hkd.map([u] => (hkt: HKTree[u, F]) => hkt.map(f)), mirror)
+      new HKProductImpl(hkd.map([u] => (hkt: HKTree[u, F]) => hkt.map(f)), mirror)
     }
     def fold (using applicative: Applicative[F]): F[R] = {
       applicative.map(applicative.productAll(hkd.map[F]([u] => (hkt: HKTree[u, F]) => hkt.fold).asTuple(using mirror)))(mirror.fromProduct)
     }
   }
-  private class SumHKTreeImpl [R, F[_], T <: R] (value: HKTree[T, F]) extends HKSum[R, F] {
+  private class HKSumImpl [R, F[_], T <: R] (value: HKTree[T, F]) extends HKSum[R, F] {
     def map [G[_]](f: [t] => F[t] => G[t]): HKSum[R, G] = {
-      new SumHKTreeImpl[R, G, T](value.map(f))
+      new HKSumImpl[R, G, T](value.map(f))
     }
     def fold (using applicative: Applicative[F]): F[R] = {
       applicative.widen(value.fold)
     }
   }
-  private class ValueHKTreeImpl [R, F[_]] (val value: F[R]) extends HKValue[R, F] {
+  private class HKValueImpl [R, F[_]] (val value: F[R]) extends HKValue[R, F] {
     def map [G[_]](f: [t] => F[t] => G[t]): HKValue[R, G] = {
-      new ValueHKTreeImpl(f[R](value))
+      new HKValueImpl(f[R](value))
     }
     def fold (using applicative: Applicative[F]): F[R] = value
   }
