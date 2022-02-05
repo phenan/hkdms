@@ -2,9 +2,9 @@ package com.phenan.hkdms
 
 import cats.Id
 import com.phenan.hkdms.free.*
-import com.phenan.hkdms.hkd.*
+import com.phenan.hkdms.hkd.{HKValue, *}
 import com.phenan.hkdms.iso.Iso
-import com.phenan.hkdms.iso.given
+import com.phenan.hkdms.iso
 import com.phenan.hkdms.example.*
 
 object Main {
@@ -42,12 +42,13 @@ object Main {
 
     println(Some(Bar("hogehoge")) == result)
 
-    val foo1 = HKD[Foo, Option](i = Some(10), s = Some("string"))
+    val hktree: HKTree[Hoge, Option] = HKProduct[Foo, Option](
+      i = HKValue(Option(10)),
+      s = HKValue(Option("str"))
+    ).widen[Hoge]
 
-    println(foo1.i)
+    val hogeOpt: Option[Hoge] = hktree.fold
 
-    val foo2 = HKD[Foo, Option](Some(2), Some("hoge"))
-
-    println(foo2.s)
+    println(hogeOpt)
   }
 }
