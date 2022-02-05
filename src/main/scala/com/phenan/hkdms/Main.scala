@@ -1,9 +1,8 @@
 package com.phenan.hkdms
 
 import cats.Id
-
 import com.phenan.hkdms.free.*
-import com.phenan.hkdms.hkd.HKD
+import com.phenan.hkdms.hkd.*
 import com.phenan.hkdms.iso.Iso
 import com.phenan.hkdms.iso.given
 import com.phenan.hkdms.example.*
@@ -43,5 +42,13 @@ object Main {
     println(result)
 
     println(Some(Bar("hogehoge")) == result)
+
+    val foo1 = HKDOf[Foo, Option](i = Some(10), s = Some("string"))
+
+    println(foo1.i)
+
+    val foo2 = HKDOf[Foo, Option](Some(2), Some("hoge"))
+
+    println(foo2.s)
   }
 }

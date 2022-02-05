@@ -36,3 +36,13 @@ object HKD {
     }
   }
 }
+
+object HKDOf extends Dynamic {
+  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: Tuple.Map[mirror.MirroredElemTypes, F]): HKD[R, F] = HKD.fromTuple(args)
+  def applyDynamicNamed[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(params: Tuple.Zip[mirror.MirroredElemLabels, Tuple.Map[mirror.MirroredElemTypes, F]]): HKD[R, F] = {
+    val args = for (i <- 0 until params.size) yield {
+      params.productElement(i).asInstanceOf[(_, _)]._2
+    }
+    HKD.fromTuple(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, F]])
+  }
+}
