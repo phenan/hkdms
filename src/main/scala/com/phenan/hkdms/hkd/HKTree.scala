@@ -10,6 +10,8 @@ sealed trait HKTree [R, F[_]] {
   def map [G[_]](f: [t] => F[t] => G[t]): HKTree[R, G]
 
   def fold (using applicative: Applicative[F]): F[R]
+
+  def widen [U >: R] : HKTree[U, F] = HKMapped(this, identity)
 }
 
 case class HKProduct [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKTree[e, F]])(using mirror: Mirror.ProductOf[R]) extends HKTree[R, F] {
@@ -27,9 +29,6 @@ case class HKMapped [T, R, F[_]] (tree: HKTree[T, F], mapper: T => R) extends HK
   def fold (using applicative: Applicative[F]): F[R] = {
     applicative.map(tree.fold)(mapper)
   }
-}
-trait HKSum [R, F[_]] extends HKTree[R, F] {
-  def map [G[_]](f: [t] => F[t] => G[t]): HKSum[R, G]
 }
 case class HKValue [R, F[_]] (value: F[R]) extends HKTree[R, F] {
   def map [G[_]](f: [t] => F[t] => G[t]): HKValue[R, G] = HKValue(f[R](value))
