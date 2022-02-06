@@ -56,3 +56,7 @@ object HKProduct extends Dynamic {
     new HKProductImpl(HKD(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKForest[e, F]]]))
   }
 }
+
+object HKSum extends Dynamic {
+  def applyDynamic[R, F[_]](nameApply: "apply")(using mirror: Mirror.SumOf[R])(args: Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKForest[e, F]]): HKSum[R, F] = new HKSumImpl[R, F](using mirror)(args)
+}
