@@ -18,4 +18,12 @@ extension [F[_]] (invariantMonoidal: InvariantMonoidal[F]) {
       case _ => invariantMonoidal.point(EmptyTuple.asInstanceOf[T])
     }
   }
+
+  def productR[T](prefix: F[Unit], value: F[T]): F[T] = {
+    invariantMonoidal.imap(invariantMonoidal.product(prefix, value))(_._2)(((), _))
+  }
+  
+  def productL[T](value: F[T], postfix: F[Unit]): F[T] = {
+    invariantMonoidal.imap(invariantMonoidal.product(value, postfix))(_._1)((_, ()))
+  }
 }
