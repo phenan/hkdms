@@ -35,3 +35,7 @@ object HKD extends Dynamic {
     new HKDImpl(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, F]])
   }
 }
+
+given [T, F[_]] : Conversion[F[T], Tuple.Map[T *: EmptyTuple, F]] = {
+  _ *: EmptyTuple
+}

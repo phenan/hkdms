@@ -79,3 +79,7 @@ object HKProduct extends Dynamic {
 object HKSum extends Dynamic {
   def applyDynamic[R, F[_]](nameApply: "apply")(using mirror: Mirror.SumOf[R])(args: => Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKForest[e, F]]): HKSum[R, F] = new HKSumImpl[R, F](using mirror)(args)
 }
+
+given [T, F[_]] : Conversion[HKForest[T, F], Tuple.Map[T *: EmptyTuple, [e] =>> HKForest[e, F]]] = {
+  _ *: EmptyTuple
+}

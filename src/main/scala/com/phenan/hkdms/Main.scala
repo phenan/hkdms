@@ -2,12 +2,8 @@ package com.phenan.hkdms
 
 import cats.Id
 import com.phenan.hkdms.free.*
-import com.phenan.hkdms.hkd.*
+import com.phenan.hkdms.hkd.{*, given}
 import com.phenan.hkdms.example.*
-
-given [T, F[_]] : Conversion[F[T], Tuple.Map[T *: EmptyTuple, F]] = {
-  _ *: EmptyTuple
-}
 
 object Main {
   def main(args: Array[String]): Unit = {

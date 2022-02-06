@@ -52,3 +52,7 @@ object HKStruct extends Dynamic {
     new HKStructImpl(HKD(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKTree[e, F]]]))
   }
 }
+
+given [T, F[_]] : Conversion[HKTree[T, F], Tuple.Map[T *: EmptyTuple, [e] =>> HKTree[e, F]]] = {
+  _ *: EmptyTuple
+}
