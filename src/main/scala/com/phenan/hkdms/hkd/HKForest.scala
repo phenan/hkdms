@@ -1,6 +1,7 @@
 package com.phenan.hkdms.hkd
 
 import cats.{InvariantMonoidal, SemigroupK}
+import com.phenan.hkdms.InvariantSemiringal
 import com.phenan.hkdms.syntax.*
 import com.phenan.hkdms.util.{IndexedUnion, TupleMaps}
 
@@ -9,9 +10,9 @@ import scala.language.dynamics
 
 sealed trait HKForest [R, F[_]] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKForest[R, G]
-  def fold (using invariantMonoidal: InvariantMonoidal[F], semigroupK: SemigroupK[F]): F[R]
+  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R]
 
-  def foldMap [G[_]](compiler: [t] => F[t] => G[t])(using invariantMonoidal: InvariantMonoidal[G], semigroupK: SemigroupK[G]): G[R] = hmap(compiler).fold
+  def foldMap [G[_]](compiler: [t] => F[t] => G[t])(using invariantSemiringal: InvariantSemiringal[G]): G[R] = hmap(compiler).fold
 }
 
 extension [R, F[_]] (forest: => HKForest[R, F]) {
@@ -29,30 +30,30 @@ trait HKSum [R, F[_]] extends HKForest[R, F] {
 
 class HKPrefixed [R, F[_]] (prefix: => HKForest[Unit, F], forest: HKForest[R, F]) extends HKForest[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKPrefixed[R, G] = new HKPrefixed[R, G](prefix.hmap(f), forest.hmap(f))
-  def fold (using invariantMonoidal: InvariantMonoidal[F], semigroupK: SemigroupK[F]): F[R] = {
-    invariantMonoidal.productR(prefix.fold, forest.fold)
+  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = {
+    invariantSemiringal.productR(prefix.fold, forest.fold)
   }
 }
 
 class HKPostfixed [R, F[_]] (forest: => HKForest[R, F], postfix: HKForest[Unit, F]) extends HKForest[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKPostfixed[R, G] = new HKPostfixed[R, G](forest.hmap(f), postfix.hmap(f))
-  def fold (using invariantMonoidal: InvariantMonoidal[F], semigroupK: SemigroupK[F]): F[R] = {
-    invariantMonoidal.productL(forest.fold, postfix.fold)
+  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = {
+    invariantSemiringal.productL(forest.fold, postfix.fold)
   }
 }
 
 case class HKLeaf [R, F[_]] (value: F[R]) extends HKForest[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKLeaf[R, G] = HKLeaf(f[R](value))
-  def fold (using invariantMonoidal: InvariantMonoidal[F], semigroupK: SemigroupK[F]): F[R] = value
+  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = value
 }
 
 private class HKProductImpl [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKForest[e, F]])(using mirror: Mirror.ProductOf[R]) extends HKProduct[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKProduct[R, G] = {
     new HKProductImpl[R, G](hkd.map([u] => (hkt: HKForest[u, F]) => hkt.hmap(f)))
   }
-  def fold (using invariantMonoidal: InvariantMonoidal[F], semigroupK: SemigroupK[F]): F[R] = {
-    val product = invariantMonoidal.productAll(hkd.map[F]([u] => (hkt: HKForest[u, F]) => hkt.fold).asTuple)
-    invariantMonoidal.imap(product)(mirror.fromProduct)(Tuple.fromProductTyped(_))
+  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = {
+    val product = invariantSemiringal.productAll(hkd.map[F]([u] => (hkt: HKForest[u, F]) => hkt.fold).asTuple)
+    invariantSemiringal.imap(product)(mirror.fromProduct)(Tuple.fromProductTyped(_))
   }
 }
 
@@ -60,9 +61,9 @@ private class HKSumImpl [R, F[_]] (using mirror: Mirror.SumOf[R])(sum: => Tuple.
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKSum[R, G] = {
     new HKSumImpl[R, G](using mirror)(TupleMaps.map(sum) { [a] => (forest: HKForest[a, F]) => forest.hmap(f) })
   }
-  def fold (using invariantMonoidal: InvariantMonoidal[F], semigroupK: SemigroupK[F]): F[R] = {
+  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = {
     val elems: Tuple.Map[mirror.MirroredElemTypes, F] = TupleMaps.map(sum) { [a] => (forest: HKForest[a, F]) => forest.fold }
-    invariantMonoidal.imap[IndexedUnion[mirror.MirroredElemTypes], R](semigroupK.combineAll(elems))(_.value.asInstanceOf[R])(r => IndexedUnion(r.asInstanceOf[Tuple.Union[mirror.MirroredElemTypes]], mirror.ordinal(r)))
+    invariantSemiringal.imap[IndexedUnion[mirror.MirroredElemTypes], R](invariantSemiringal.sumAll(elems))(_.value.asInstanceOf[R])(r => IndexedUnion(r.asInstanceOf[Tuple.Union[mirror.MirroredElemTypes]], mirror.ordinal(r)))
   }
 }
 
