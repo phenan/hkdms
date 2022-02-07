@@ -23,17 +23,17 @@ object FreeSRI {
   }
   case class Product[F[_], T <: Tuple] (tuple: Tuple.Map[T, [t] =>> FreeSRI[F, t]]) extends FreeSRI[F, T] {
     def foldMap[G[_]](f: [a] => F[a] => G[a])(using semiringalInvariant: InvariantSemiringal[G]): G[T] = {
-      semiringalInvariant.product(TupleMaps.map(tuple)([t] => (ft: FreeSRI[F, t]) => ft.foldMap(f)))
+      semiringalInvariant.productAll(TupleMaps.map(tuple)([t] => (ft: FreeSRI[F, t]) => ft.foldMap(f)))
     }
   }
   case class Union[F[_], T <: Tuple] (tuple: Tuple.Map[T, [t] =>> FreeSRI[F, t]]) extends FreeSRI[F, IndexedUnion[T]] {
     def foldMap[G[_]](f: [a] => F[a] => G[a])(using semiringalInvariant: InvariantSemiringal[G]): G[IndexedUnion[T]] = {
-      semiringalInvariant.sum[T](TupleMaps.map(tuple)([t] => (ft: FreeSRI[F, t]) => ft.foldMap(f)))
+      semiringalInvariant.sumAll[T](TupleMaps.map(tuple)([t] => (ft: FreeSRI[F, t]) => ft.foldMap(f)))
     }
   }
   case class IMapped[F[_], A, B] (fa: FreeSRI[F, A], iso: A <=> B) extends FreeSRI[F, B] {
     def foldMap[G[_]](f: [a] => F[a] => G[a])(using semiringalInvariant: InvariantSemiringal[G]): G[B] = {
-      semiringalInvariant.imap(iso)(fa.foldMap(f))
+      semiringalInvariant.imap(fa.foldMap(f))(iso.to)(iso.from)
     }
   }
 }

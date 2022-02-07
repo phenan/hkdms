@@ -21,16 +21,16 @@ object Printer {
       Printer[A] (value => "")
     }
 
-    override def product[T <: Tuple](tupleMap: Tuple.Map[T, Printer]): Printer[T] = {
+    override def productAll[T <: Tuple](tupleMap: Tuple.Map[T, Printer]): Printer[T] = {
       Printer[T] (_.intercalate(showFunctionMap(tupleMap), " "))
     }
 
-    override def sum[T <: Tuple](tupleMap: Tuple.Map[T, Printer]): Printer[IndexedUnion[T]] = {
+    override def sumAll[T <: Tuple](tupleMap: Tuple.Map[T, Printer]): Printer[IndexedUnion[T]] = {
       Printer[IndexedUnion[T]] (_.fold(showFunctionMap(tupleMap)))
     }
 
-    override def imap[A, B](iso: A <=> B): Printer[A] => Printer[B] = { (instance: Printer[A]) =>
-      Printer[B] (value => instance.show(iso.from(value)))
+    override def imap[A, B](printer: Printer[A])(f: A => B)(g: B => A): Printer[B] = {
+      Printer[B] (value => printer.show(g(value)))
     }
   }
 
