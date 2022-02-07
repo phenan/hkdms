@@ -20,6 +20,8 @@ object Syntax {
   val integerLit = impure(SyntaxElem.IntegerLit)
 }
 
+case class Piyo (hoges: List[Hoge])
+
 sealed trait Hoge
 case class Foo(i: Int, s: String) extends Hoge
 case class Bar(x: String) extends Hoge

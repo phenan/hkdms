@@ -1,6 +1,7 @@
 package com.phenan.hkdms
 
 import cats.Id
+import cats.instances.list.*
 import com.phenan.hkdms.free.*
 import com.phenan.hkdms.hkd.{*, given}
 import com.phenan.hkdms.example.*
@@ -46,5 +47,19 @@ object Main {
     val hogeOpt: Option[Hoge] = hktree.fold
 
     println(hogeOpt)
+
+    val piyoTree = HKStruct[Piyo, Option](
+      HKList(List)(
+        HKStruct[Foo, Option](
+          i = Option(1),
+          s = Option("one")
+        ).widen[Hoge],
+        HKStruct[Bar, Option](
+          HKValue(Option("bar"))
+        ).widen[Hoge]
+      )
+    )
+
+    println(piyoTree.fold)
   }
 }

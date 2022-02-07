@@ -1,9 +1,10 @@
 package com.phenan.hkdms.hkd
 
-import cats.Applicative
+import cats.{Applicative, Traverse}
 import com.phenan.hkdms.syntax.*
 import com.phenan.hkdms.util.*
 
+import scala.collection.IterableFactory
 import scala.deriving.Mirror
 import scala.language.dynamics
 
@@ -22,14 +23,11 @@ sealed trait HKTree [R, F[_]] {
 trait HKStruct [R <: Product, F[_]] extends HKTree[R, F] {
   def hmap[G[_]](f: [t] => F[t] => G[t]): HKStruct[R, G]
 }
-private class HKStructImpl [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKTree[e, F]])(using mirror: Mirror.ProductOf[R]) extends HKStruct[R, F] {
-  def hmap [G[_]](f: [t] => F[t] => G[t]): HKStruct[R, G] = {
-    new HKStructImpl(hkd.map([u] => (hkt: HKTree[u, F]) => hkt.hmap(f)))
-  }
-  def fold (using applicative: Applicative[F]): F[R] = {
-    applicative.map(applicative.productAll(hkd.map[F]([u] => (hkt: HKTree[u, F]) => hkt.fold).asTuple))(mirror.fromProduct)
-  }
+
+trait HKList [C[_], R, F[_]] (using traverse: Traverse[C]) extends HKTree[C[R], F] {
+  def hmap[G[_]](f: [t] => F[t] => G[t]): HKList[C, R, G]
 }
+
 class HKMapped [T, R, F[_]] (tree: HKTree[T, F], mapper: T => R) extends HKTree[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKMapped[T, R, G] = {
     new HKMapped(tree.hmap(f), mapper)
@@ -38,9 +36,28 @@ class HKMapped [T, R, F[_]] (tree: HKTree[T, F], mapper: T => R) extends HKTree[
     applicative.map(tree.fold)(mapper)
   }
 }
+
 case class HKValue [R, F[_]] (value: F[R]) extends HKTree[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKValue[R, G] = HKValue(f[R](value))
   def fold (using applicative: Applicative[F]): F[R] = value
+}
+
+private class HKStructImpl [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKTree[e, F]])(using mirror: Mirror.ProductOf[R]) extends HKStruct[R, F] {
+  def hmap [G[_]](f: [t] => F[t] => G[t]): HKStruct[R, G] = {
+    new HKStructImpl(hkd.map([u] => (hkt: HKTree[u, F]) => hkt.hmap(f)))
+  }
+  def fold (using applicative: Applicative[F]): F[R] = {
+    applicative.map(applicative.productAll(hkd.map[F]([u] => (hkt: HKTree[u, F]) => hkt.fold).asTuple))(mirror.fromProduct)
+  }
+}
+
+private class HKListImpl [C[_], R, F[_]] (trees: C[HKTree[R, F]])(using traverse: Traverse[C]) extends HKList[C, R, F] {
+  def hmap[G[_]](f: [t] => F[t] => G[t]): HKList[C, R, G] = {
+    new HKListImpl(traverse.map(trees)(_.hmap(f)))
+  }
+  def fold (using applicative: Applicative[F]): F[C[R]] = {
+    traverse.traverse(trees) { _.fold }
+  }
 }
 
 object HKStruct extends Dynamic {
@@ -53,8 +70,11 @@ object HKStruct extends Dynamic {
   }
 }
 
-given [T, F[_]] : Conversion[HKTree[T, F], Tuple.Map[T *: EmptyTuple, [e] =>> HKTree[e, F]]] = {
-  _ *: EmptyTuple
+object HKList {
+  def apply[C[_] : Traverse, T, F[_]](trees: C[HKTree[T, F]]): HKList[C, T, F] = new HKListImpl(trees)
+  def apply[C[_] : Traverse, T, F[_]](factory: IterableFactory[C])(trees: HKTree[T, F]*): HKList[C, T, F] = new HKListImpl(factory(trees*))
 }
+
+given [T, F[_]] : Conversion[HKTree[T, F], Tuple.Map[T *: EmptyTuple, [e] =>> HKTree[e, F]]] = _ *: EmptyTuple
 
 given [T, F[_]] : Conversion[F[T], HKValue[T, F]] = HKValue(_)
