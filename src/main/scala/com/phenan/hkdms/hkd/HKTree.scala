@@ -56,3 +56,5 @@ object HKStruct extends Dynamic {
 given [T, F[_]] : Conversion[HKTree[T, F], Tuple.Map[T *: EmptyTuple, [e] =>> HKTree[e, F]]] = {
   _ *: EmptyTuple
 }
+
+given [T, F[_]] : Conversion[F[T], HKValue[T, F]] = HKValue(_)
