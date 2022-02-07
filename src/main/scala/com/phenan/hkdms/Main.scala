@@ -51,8 +51,8 @@ object Main {
     val piyoTree = HKStruct[Piyo, Option](
       HKList(List)(
         HKStruct[Foo, Option](
-          i = Option(1),
-          s = Option("one")
+          Option(1),
+          Option("one")
         ).widen[Hoge],
         HKStruct[Bar, Option](
           Option("bar")
