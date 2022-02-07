@@ -70,11 +70,11 @@ object HKStructField {
 opaque type HKStructFields[T <: Tuple, F[_]] = Tuple.Map[T, [e] =>> HKStructField[e, F]]
 
 object HKStructFields {
-  given [A, H, F[_]] (using headConv: Conversion[A, HKStructField[H, F]]): Conversion[A, HKStructFields[H *: EmptyTuple, F]] = {
-    (a: A) => headConv(a) *: EmptyTuple
+  given [A, H, F[_]] (using conv: Conversion[A, HKStructField[H, F]]): Conversion[A, HKStructFields[H *: EmptyTuple, F]] = {
+    (a: A) => conv(a) *: EmptyTuple
   }
-  given [A, H, F[_]] (using headConv: Conversion[A, HKStructField[H, F]]): Conversion[A *: EmptyTuple, HKStructFields[H *: EmptyTuple, F]] = {
-    (a: A *: EmptyTuple) => headConv(a.head) *: EmptyTuple
+  given [A, H, F[_]] (using conv: Conversion[A, HKStructField[H, F]]): Conversion[A *: EmptyTuple, HKStructFields[H *: EmptyTuple, F]] = {
+    (a: A *: EmptyTuple) => conv(a.head) *: EmptyTuple
   }
   given [A, B <: Tuple, H, T <: Tuple, F[_]] (using headConv: Conversion[A, HKStructField[H, F]], tailConv: Conversion[B, HKStructFields[T, F]]): Conversion[A *: B, HKStructFields[H *: T, F]] = {
     (ab: A *: B) => headConv(ab.head) *: tailConv(ab.tail)
@@ -100,5 +100,4 @@ object HKList {
   def apply[C[_] : Traverse, T, F[_]](factory: IterableFactory[C])(trees: HKTree[T, F]*): HKList[C, T, F] = new HKListImpl(factory(trees*))
 }
 
-given [T, F[_]] : Conversion[HKTree[T, F], Tuple.Map[T *: EmptyTuple, [e] =>> HKTree[e, F]]] = _ *: EmptyTuple
 given [T, F[_]] : Conversion[F[T], HKValue[T, F]] = HKValue(_)
