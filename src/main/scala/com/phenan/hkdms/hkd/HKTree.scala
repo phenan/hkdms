@@ -60,8 +60,17 @@ private class HKListImpl [C[_], R, F[_]] (trees: C[HKTree[R, F]])(using traverse
   }
 }
 
+opaque type HKStructFields[Fields <: Tuple, F[_]] = Tuple.Map[Fields, [e] =>> HKTree[e, F]]
+
+object HKStructFields {
+  given [T, F[_]] : Conversion[HKTree[T, F], HKStructFields[T *: EmptyTuple, F]] = _ *: EmptyTuple
+  given [T, F[_]] : Conversion[F[T], HKStructFields[T *: EmptyTuple, F]] = HKValue(_) *: EmptyTuple
+
+  def toHKD[R <: Product, F[_]](using mirror: Mirror.ProductOf[R])(fields: HKStructFields[mirror.MirroredElemTypes, F]): HKD[R, [e] =>> HKTree[e, F]] = HKD[R, [e] =>> HKTree[e, F]](fields)
+}
+
 object HKStruct extends Dynamic {
-  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKTree[e, F]]): HKStruct[R, F] = new HKStructImpl(HKD(args))
+  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: HKStructFields[mirror.MirroredElemTypes, F]): HKStruct[R, F] = new HKStructImpl(HKStructFields.toHKD(args))
   def applyDynamicNamed[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(params: Tuple.Zip[mirror.MirroredElemLabels, Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKTree[e, F]]]): HKStruct[R, F] = {
     val args = for (i <- 0 until params.size) yield {
       params.productElement(i).asInstanceOf[(_, _)]._2
@@ -74,7 +83,5 @@ object HKList {
   def apply[C[_] : Traverse, T, F[_]](trees: C[HKTree[T, F]]): HKList[C, T, F] = new HKListImpl(trees)
   def apply[C[_] : Traverse, T, F[_]](factory: IterableFactory[C])(trees: HKTree[T, F]*): HKList[C, T, F] = new HKListImpl(factory(trees*))
 }
-
-given [T, F[_]] : Conversion[HKTree[T, F], Tuple.Map[T *: EmptyTuple, [e] =>> HKTree[e, F]]] = _ *: EmptyTuple
 
 given [T, F[_]] : Conversion[F[T], HKValue[T, F]] = HKValue(_)

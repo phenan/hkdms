@@ -55,7 +55,7 @@ object Main {
           s = Option("one")
         ).widen[Hoge],
         HKStruct[Bar, Option](
-          HKValue(Option("bar"))
+          Option("bar")
         ).widen[Hoge]
       )
     )
