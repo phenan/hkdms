@@ -2,7 +2,7 @@ package com.phenan.hkdms
 
 import cats.instances.list.*
 import com.phenan.hkdms.free.*
-import com.phenan.hkdms.hkd.{*, given}
+import com.phenan.hkdms.hkd.*
 import com.phenan.hkdms.example.*
 
 object Main {
