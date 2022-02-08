@@ -2,9 +2,9 @@ package com.phenan.hkdms.hkd
 
 import org.scalatest.funsuite.AnyFunSuite
 
-case class UserProfile(name: String, age: Int)
-
 class HKTreeSpec extends AnyFunSuite {
+  case class UserProfile(name: String, age: Int)
+
   test("単純なデータ型 / 名前指定で生成 / フィールドは全てSome") {
     val profile: HKStruct[UserProfile, Option] = HKStruct[UserProfile, Option](
       name = Some("UserName"),
