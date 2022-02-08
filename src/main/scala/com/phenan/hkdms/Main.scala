@@ -1,6 +1,5 @@
 package com.phenan.hkdms
 
-import cats.Id
 import cats.instances.list.*
 import com.phenan.hkdms.free.*
 import com.phenan.hkdms.hkd.{*, given}
@@ -8,10 +7,10 @@ import com.phenan.hkdms.example.*
 
 object Main {
   def main(args: Array[String]): Unit = {
-    val hkd1: HKD[Foo, Id] = HKD[Foo, Id](1, "one")
+    val hkd1: HKD[Foo, Option] = HKD[Foo, Option](Some(1), Some("one"))
 
-    val i: Int = hkd1.i
-    val s: String =  hkd1.s
+    val i: Option[Int] = hkd1.i
+    val s: Option[String] =  hkd1.s
 
     println(i)
     println(s)
@@ -22,9 +21,9 @@ object Main {
 
     println(x)
 
-    val hkd3 = hkd1.map([t] => (fa: Id[t]) => Right(fa): Either[Nothing, t])
-    val i3: Either[Nothing, Int] = hkd3.i
-    val s3: Either[Nothing, String] = hkd3.s
+    val hkd3 = hkd1.map([t] => (fa: Option[t]) => fa.toRight("fail"))
+    val i3: Either[String, Int] = hkd3.i
+    val s3: Either[String, String] = hkd3.s
 
     println(i3)
     println(s3)

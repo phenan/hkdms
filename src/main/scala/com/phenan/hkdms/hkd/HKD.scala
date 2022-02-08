@@ -30,16 +30,25 @@ private class HKDImpl [R <: Product, F[_], T <: Tuple] (tuple: Tuple.Map[T, F]) 
   }
 }
 
+opaque type HKDElems[T <: Tuple, F[_]] = Tuple.Map[T, F]
+
+object HKDElems {
+  given [T, F[_]] : Conversion[F[T], HKDElems[T *: EmptyTuple, F]] = _ *: EmptyTuple
+  given [T, F[_]] : Conversion[F[T] *: EmptyTuple, HKDElems[T *: EmptyTuple, F]] = identity
+  given [H, S <: Tuple, T <: Tuple, F[_]] (using conv: Conversion[S, HKDElems[T, F]]) : Conversion[F[H] *: S, HKDElems[H *: T, F]] = v => {
+    v.head *: conv(v.tail)
+  }
+
+  def fromTupleMap[T <: Tuple, F[_]] (tupleMap: Tuple.Map[T, F]): HKDElems[T, F] = tupleMap
+  def toTupleMap[T <: Tuple, F[_]] (elems: HKDElems[T, F]): Tuple.Map[T, F] = elems
+}
+
 object HKD extends Dynamic {
-  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: Tuple.Map[mirror.MirroredElemTypes, F]): HKD[R, F] = new HKDImpl(args)
+  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: HKDElems[mirror.MirroredElemTypes, F]): HKD[R, F] = new HKDImpl(HKDElems.toTupleMap(args))
   def applyDynamicNamed[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(params: Tuple.Zip[mirror.MirroredElemLabels, Tuple.Map[mirror.MirroredElemTypes, F]]): HKD[R, F] = {
     val args = for (i <- 0 until params.size) yield {
       params.productElement(i).asInstanceOf[(_, _)]._2
     }
     new HKDImpl(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, F]])
   }
-}
-
-given [T, F[_]] : Conversion[F[T], Tuple.Map[T *: EmptyTuple, F]] = {
-  _ *: EmptyTuple
 }

@@ -86,12 +86,12 @@ extension [T <: Tuple, F[_]] (fields: HKStructFields[T, F]) {
 }
 
 object HKStruct extends Dynamic {
-  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: HKStructFields[mirror.MirroredElemTypes, F]): HKStruct[R, F] = new HKStructImpl(HKD(args.toTupleMap))
+  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: HKStructFields[mirror.MirroredElemTypes, F]): HKStruct[R, F] = new HKStructImpl(HKD(HKDElems.fromTupleMap(args.toTupleMap)))
   def applyDynamicNamed[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(params: Tuple.Zip[mirror.MirroredElemLabels, Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKStructField[e, F]]]): HKStruct[R, F] = {
     val args = for (i <- 0 until params.size) yield {
       params.productElement(i).asInstanceOf[(_, _)]._2
     }
-    new HKStructImpl(HKD(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKTree[e, F]]]))
+    new HKStructImpl(HKD(HKDElems.fromTupleMap(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKTree[e, F]]])))
   }
 }
 

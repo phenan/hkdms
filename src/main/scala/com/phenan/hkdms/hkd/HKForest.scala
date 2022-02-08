@@ -67,12 +67,12 @@ private class HKSumImpl [R, F[_]] (using mirror: Mirror.SumOf[R])(sum: => Tuple.
 }
 
 object HKProduct extends Dynamic {
-  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKForest[e, F]]): HKProduct[R, F] = new HKProductImpl(HKD(args))
+  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKForest[e, F]]): HKProduct[R, F] = new HKProductImpl(HKD(HKDElems.fromTupleMap(args)))
   def applyDynamicNamed[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(params: Tuple.Zip[mirror.MirroredElemLabels, Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKForest[e, F]]]): HKProduct[R, F] = {
     val args = for (i <- 0 until params.size) yield {
       params.productElement(i).asInstanceOf[(_, _)]._2
     }
-    new HKProductImpl(HKD(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKForest[e, F]]]))
+    new HKProductImpl(HKD(HKDElems.fromTupleMap(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKForest[e, F]]])))
   }
 }
 
