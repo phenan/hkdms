@@ -47,7 +47,7 @@ private class HKStructImpl [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKTree[e, F
     new HKStructImpl(hkd.map([u] => (hkt: HKTree[u, F]) => hkt.hmap(f)))
   }
   def fold (using applicative: Applicative[F]): F[R] = {
-    applicative.map(applicative.productAll(hkd.map[F]([u] => (hkt: HKTree[u, F]) => hkt.fold).asTuple))(mirror.fromProduct)
+    hkd.foldMap([u] => (hkt: HKTree[u, F]) => hkt.fold)
   }
 }
 

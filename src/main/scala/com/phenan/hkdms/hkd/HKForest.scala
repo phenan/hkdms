@@ -52,8 +52,7 @@ private class HKProductImpl [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKForest[e
     new HKProductImpl[R, G](hkd.map([u] => (hkt: HKForest[u, F]) => hkt.hmap(f)))
   }
   def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = {
-    val product = invariantSemiringal.productAll(hkd.map[F]([u] => (hkt: HKForest[u, F]) => hkt.fold).asTuple)
-    invariantSemiringal.imap(product)(mirror.fromProduct)(Tuple.fromProductTyped(_))
+    hkd.foldMap([u] => (hkt: HKForest[u, F]) => hkt.fold)
   }
 }
 

@@ -1,6 +1,7 @@
 package com.phenan.hkdms.hkd
 
-import cats.Id
+import cats.{Id, InvariantMonoidal}
+import com.phenan.hkdms.syntax.*
 import com.phenan.hkdms.util.*
 
 import scala.deriving.Mirror
@@ -11,7 +12,9 @@ trait HKD [R <: Product, F[_]] extends Dynamic {
 
   def map [G[_]](f: [t] => F[t] => G[t]): HKD[R, G]
 
-  def asTuple (using mirror: Mirror.ProductOf[R]): Tuple.Map[mirror.MirroredElemTypes, F]
+  def fold (using mirror: Mirror.ProductOf[R], invariantMonoidal: InvariantMonoidal[F]): F[R]
+
+  def foldMap [G[_]] (f: [t] => F[t] => G[t])(using mirror: Mirror.ProductOf[R], invariantMonoidal: InvariantMonoidal[G]): G[R] = map(f).fold
 }
 
 private class HKDImpl [R <: Product, F[_], T <: Tuple] (tuple: Tuple.Map[T, F]) extends HKD[R, F] {
@@ -21,8 +24,9 @@ private class HKDImpl [R <: Product, F[_], T <: Tuple] (tuple: Tuple.Map[T, F]) 
   def map [G[_]](f: [t] => F[t] => G[t]): HKD[R, G] = {
     new HKDImpl[R, G, T](TupleMaps.map(tuple)(f))
   }
-  def asTuple (using mirror: Mirror.ProductOf[R]): Tuple.Map[mirror.MirroredElemTypes, F] = {
-    tuple.asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, F]]
+  def fold (using mirror: Mirror.ProductOf[R], invariantMonoidal: InvariantMonoidal[F]): F[R] = {
+    val product: F[mirror.MirroredElemTypes] = invariantMonoidal.productAll(tuple.asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, F]])
+    invariantMonoidal.imap(product)(mirror.fromProduct)(Tuple.fromProductTyped(_))
   }
 }
 
