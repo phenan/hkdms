@@ -1,6 +1,6 @@
 package com.phenan.hkdms.hkd
 
-import cats.{Id, InvariantMonoidal}
+import cats.InvariantMonoidal
 import com.phenan.hkdms.syntax.*
 import com.phenan.hkdms.util.*
 
@@ -55,7 +55,7 @@ object HKDNamedElemsNormalizer {
     val pair: (Label, F[Type]) = input
     pair *: EmptyTuple
   }
-  given moreThanTwoArgs [Label, Type, Labels <: NonEmptyTuple, Types <: NonEmptyTuple, F[_]] : HKDNamedElemsNormalizer[Label *: Labels, Type *: Types, F] = identity
+  given multiArgs [Label, Type, Labels <: NonEmptyTuple, Types <: NonEmptyTuple, F[_]] : HKDNamedElemsNormalizer[Label *: Labels, Type *: Types, F] = identity
 
   def normalize[Labels <: Tuple, Types <: Tuple, F[_]](in: HKDNamedElems[Labels, Types, F])(using normalizer: HKDNamedElemsNormalizer[Labels, Types, F]): Tuple.Zip[Labels, Tuple.Map[Types, F]] = normalizer(in)
 }
