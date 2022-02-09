@@ -4,9 +4,42 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
 
 class HKDSpec extends AnyFunSuite {
+  case class TestScore(score: Int)
   case class UserProfile(name: String, age: Int)
 
-  test("名前指定で生成 / フィールドは全てSome") {
+  test("単独フィールド / 名前指定で生成 / フィールドはSome") {
+    val hkd = HKD[TestScore, Option](
+      score = Some(60)
+    )
+    assert(hkd.score == Some(60))
+    assert(hkd.fold == Some(TestScore(60)))
+  }
+
+  test("単独フィールド / 名前指定なし / フィールドはSome") {
+    val hkd = HKD[TestScore, Option](
+      Some(60)
+    )
+    assert(hkd.score == Some(60))
+    assert(hkd.fold == Some(TestScore(60)))
+  }
+
+  test("単独フィールド / 名前指定で生成 / フィールドはNone") {
+    val hkd = HKD[TestScore, Option](
+      score = None
+    )
+    assert(hkd.score == None)
+    assert(hkd.fold == None)
+  }
+
+  test("単独フィールド / 名前指定なし / フィールドはNone") {
+    val hkd = HKD[TestScore, Option](
+      None
+    )
+    assert(hkd.score == None)
+    assert(hkd.fold == None)
+  }
+
+  test("複数フィールド / 名前指定で生成 / フィールドは全てSome") {
     val hkd = HKD[UserProfile, Option](
       name = Some("name"),
       age = Some(20)
@@ -16,14 +49,14 @@ class HKDSpec extends AnyFunSuite {
     assert(hkd.fold == Some(UserProfile("name", 20)))
   }
 
-  test("名前指定なし / フィールドは全てSome") {
+  test("複数フィールド / 名前指定なし / フィールドは全てSome") {
     val hkd = HKD[UserProfile, Option](Some("name"), Some(20))
     assert(hkd.name == Some("name"))
     assert(hkd.age == Some(20))
     assert(hkd.fold == Some(UserProfile("name", 20)))
   }
 
-  test("名前指定で生成 / フィールドにNoneを含む") {
+  test("複数フィールド / 名前指定で生成 / フィールドにNoneを含む") {
     val hkd = HKD[UserProfile, Option](
       name = None,
       age = Some(20)
@@ -33,7 +66,7 @@ class HKDSpec extends AnyFunSuite {
     assert(hkd.fold == None)
   }
 
-  test("名前指定なし / フィールドにNoneを含む") {
+  test("複数フィールド / 名前指定なし / フィールドにNoneを含む") {
     val hkd = HKD[UserProfile, Option](Some("name"), None)
     assert(hkd.name == Some("name"))
     assert(hkd.age == None)
