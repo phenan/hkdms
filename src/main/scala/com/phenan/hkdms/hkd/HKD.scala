@@ -30,17 +30,9 @@ private class HKDImpl [R <: Product, F[_], T <: Tuple] (tuple: Tuple.Map[T, F]) 
   }
 }
 
-opaque type HKDElems[T <: Tuple, F[_]] = Tuple.Map[T, F]
-
-object HKDElems {
-  given [T, F[_]] : Conversion[F[T], HKDElems[T *: EmptyTuple, F]] = _ *: EmptyTuple
-  given [T, F[_]] : Conversion[F[T] *: EmptyTuple, HKDElems[T *: EmptyTuple, F]] = identity
-  given [H, S <: Tuple, T <: Tuple, F[_]] (using conv: Conversion[S, HKDElems[T, F]]) : Conversion[F[H] *: S, HKDElems[H *: T, F]] = v => {
-    v.head *: conv(v.tail)
-  }
-
-  def fromTupleMap[T <: Tuple, F[_]] (tupleMap: Tuple.Map[T, F]): HKDElems[T, F] = tupleMap
-  def toTupleMap[T <: Tuple, F[_]] (elems: HKDElems[T, F]): Tuple.Map[T, F] = elems
+type HKDElems[Types <: Tuple, F[_]] = Types match {
+  case (t *: EmptyTuple) => F[t]
+  case _                 => Tuple.Map[Types, F]
 }
 
 type HKDNamedElems[Labels <: Tuple, Types <: Tuple, F[_]] = (Labels, Types) match {
@@ -48,7 +40,15 @@ type HKDNamedElems[Labels <: Tuple, Types <: Tuple, F[_]] = (Labels, Types) matc
   case _ => Tuple.Zip[Labels, Tuple.Map[Types, F]]
 }
 
+opaque type HKDElemsNormalizer[Types <: Tuple, F[_]] = HKDElems[Types, F] => Tuple.Map[Types, F]
 opaque type HKDNamedElemsNormalizer[Labels <: Tuple, Types <: Tuple, F[_]] = HKDNamedElems[Labels, Types, F] => Tuple.Zip[Labels, Tuple.Map[Types, F]]
+
+object HKDElemsNormalizer {
+  given singleArg [Type, F[_]] : HKDElemsNormalizer[Type *: EmptyTuple, F] = (input: HKDElems[Type *: EmptyTuple, F]) => input *: EmptyTuple
+  given multiArgs [Type, Types <: NonEmptyTuple, F[_]] : HKDElemsNormalizer[Type *: Types, F] = identity
+
+  def normalize[Types <: Tuple, F[_]](in: HKDElems[Types, F])(using normalizer: HKDElemsNormalizer[Types, F]): Tuple.Map[Types, F] = normalizer(in)
+}
 
 object HKDNamedElemsNormalizer {
   given singleArg [Label, Type, F[_]] : HKDNamedElemsNormalizer[Label *: EmptyTuple, Type *: EmptyTuple, F] = (input: HKDNamedElems[Label *: EmptyTuple, Type *: EmptyTuple, F]) => {
@@ -61,12 +61,14 @@ object HKDNamedElemsNormalizer {
 }
 
 object HKD extends Dynamic {
-  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: HKDElems[mirror.MirroredElemTypes, F]): HKD[R, F] = new HKDImpl(HKDElems.toTupleMap(args))
+  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R], normalizer: HKDElemsNormalizer[mirror.MirroredElemTypes, F])(elems: HKDElems[mirror.MirroredElemTypes, F]): HKD[R, F] = HKD.fromTupleMap(HKDElemsNormalizer.normalize(elems))
   def applyDynamicNamed[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R], normalizer: HKDNamedElemsNormalizer[mirror.MirroredElemLabels, mirror.MirroredElemTypes, F])(in: HKDNamedElems[mirror.MirroredElemLabels, mirror.MirroredElemTypes, F]): HKD[R, F] = {
     val params = HKDNamedElemsNormalizer.normalize(in)
     val args = for (i <- 0 until params.size) yield {
       params.productElement(i).asInstanceOf[(_, _)]._2
     }
-    new HKDImpl(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, F]])
+    HKD.fromTupleMap(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, F]])
   }
+
+  def fromTupleMap[R <: Product, F[_]](using mirror: Mirror.ProductOf[R])(tupleMap: Tuple.Map[mirror.MirroredElemTypes, F]): HKD[R, F] = new HKDImpl(tupleMap)
 }
