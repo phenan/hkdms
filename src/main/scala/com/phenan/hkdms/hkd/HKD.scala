@@ -44,8 +44,11 @@ opaque type HKDElemsNormalizer[Types <: Tuple, F[_]] = HKDElems[Types, F] => Tup
 opaque type HKDNamedElemsNormalizer[Labels <: Tuple, Types <: Tuple, F[_]] = HKDNamedElems[Labels, Types, F] => Tuple.Map[Types, F]
 
 object HKDElemsNormalizer {
-  given singleArg [Type, F[_]] : HKDElemsNormalizer[Type *: EmptyTuple, F] = (input: HKDElems[Type *: EmptyTuple, F]) => input *: EmptyTuple
-  given multiArgs [Type, Types <: NonEmptyTuple, F[_]] : HKDElemsNormalizer[Type *: Types, F] = identity
+  given [T, F[_]] : HKDElemsNormalizer[T *: EmptyTuple, F] = (input: F[T]) => input *: EmptyTuple
+  given [T1, T2, F[_]] : HKDElemsNormalizer[(T1, T2), F] = identity
+  given [T1, T2, TS <: NonEmptyTuple, F[_]] (using normalizer: HKDElemsNormalizer[T2 *: TS, F]) : HKDElemsNormalizer[T1 *: T2 *: TS, F] = (elems: F[T1] *: HKDElems[T2 *: TS, F]) => {
+    elems.head *: normalizer(elems.tail)
+  }
 
   def normalize[Types <: Tuple, F[_]](in: HKDElems[Types, F])(using normalizer: HKDElemsNormalizer[Types, F]): Tuple.Map[Types, F] = normalizer(in)
 }
