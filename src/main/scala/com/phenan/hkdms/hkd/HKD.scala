@@ -51,17 +51,14 @@ object HKDElemsNormalizer {
 }
 
 object HKDNamedElemsNormalizer {
-  given singleArg [Label, Type, F[_]] : HKDNamedElemsNormalizer[Label *: EmptyTuple, Type *: EmptyTuple, F] = (input: HKDNamedElems[Label *: EmptyTuple, Type *: EmptyTuple, F]) => {
-    val pair: (Label, F[Type]) = input
-    pair._2 *: EmptyTuple
+  given [Label, Type, F[_]] : HKDNamedElemsNormalizer[Label *: EmptyTuple, Type *: EmptyTuple, F] = (input: (Label, F[Type])) => {
+    input._2 *: EmptyTuple
   }
-  given twoArgs [L1, L2, T1, T2, F[_]] : HKDNamedElemsNormalizer[(L1, L2), (T1, T2), F] = (elems: HKDNamedElems[(L1, L2), (T1, T2), F]) => {
-    val params: ((L1, F[T1]), (L2, F[T2])) = elems
-    (params._1._2, params._2._2)
+  given [L1, L2, T1, T2, F[_]] : HKDNamedElemsNormalizer[(L1, L2), (T1, T2), F] = (elems: ((L1, F[T1]), (L2, F[T2]))) => {
+    (elems._1._2, elems._2._2)
   }
-  given manyArgs [L1, L2, LS <: NonEmptyTuple, T1, T2, TS <: NonEmptyTuple, F[_]] (using tailNormalizer: HKDNamedElemsNormalizer[L2 *: LS, T2 *: TS, F]) : HKDNamedElemsNormalizer[L1 *: L2 *: LS, T1 *: T2 *: TS, F] = (elems: HKDNamedElems[L1 *: L2 *: LS, T1 *: T2 *: TS, F]) => {
-    val params: (L1, F[T1]) *: Tuple.Zip[L2 *: LS, Tuple.Map[T2 *: TS, F]] = elems
-    params.head._2 *: tailNormalizer(params.tail)
+  given [L1, L2, LS <: NonEmptyTuple, T1, T2, TS <: NonEmptyTuple, F[_]] (using tailNormalizer: HKDNamedElemsNormalizer[L2 *: LS, T2 *: TS, F]) : HKDNamedElemsNormalizer[L1 *: L2 *: LS, T1 *: T2 *: TS, F] = (elems: (L1, F[T1]) *: HKDNamedElems[L2 *: LS, T2 *: TS, F]) => {
+    elems.head._2 *: tailNormalizer(elems.tail)
   }
 
   def normalize[Labels <: Tuple, Types <: Tuple, F[_]](in: HKDNamedElems[Labels, Types, F])(using normalizer: HKDNamedElemsNormalizer[Labels, Types, F]): Tuple.Map[Types, F] = normalizer(in)
