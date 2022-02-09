@@ -7,6 +7,7 @@ import com.phenan.hkdms.util.*
 import scala.collection.IterableFactory
 import scala.deriving.Mirror
 import scala.language.dynamics
+import scala.reflect.TypeTest
 
 sealed trait HKTree [R, F[_]] {
   def map [U] (f: R => U) : HKTree[U, F] = new HKMapped(this, f)
@@ -60,38 +61,64 @@ private class HKListImpl [C[_], R, F[_]] (trees: C[HKTree[R, F]])(using traverse
   }
 }
 
-opaque type HKStructField[T, F[_]] = HKTree[T, F]
+type HKStructField[E, F[_]] = HKTree[E, F] | F[E]
 
-object HKStructField {
-  given [T, F[_]] : Conversion[HKTree[T, F], HKStructField[T, F]] = identity
-  given [T, F[_]] : Conversion[F[T], HKStructField[T, F]] = HKValue(_)
+type HKStructFields[T <: Tuple, F[_]] = T match {
+  case t *: EmptyTuple => HKStructField[t, F]
+  case _ => Tuple.Map[T, [e] =>> HKStructField[e, F]]
 }
 
-opaque type HKStructFields[T <: Tuple, F[_]] = Tuple.Map[T, [e] =>> HKStructField[e, F]]
-
-object HKStructFields {
-  given [A, H, F[_]] (using conv: Conversion[A, HKStructField[H, F]]): Conversion[A, HKStructFields[H *: EmptyTuple, F]] = {
-    (a: A) => conv(a) *: EmptyTuple
-  }
-  given [A, H, F[_]] (using conv: Conversion[A, HKStructField[H, F]]): Conversion[A *: EmptyTuple, HKStructFields[H *: EmptyTuple, F]] = {
-    (a: A *: EmptyTuple) => conv(a.head) *: EmptyTuple
-  }
-  given [A, B <: Tuple, H, T <: Tuple, F[_]] (using headConv: Conversion[A, HKStructField[H, F]], tailConv: Conversion[B, HKStructFields[T, F]]): Conversion[A *: B, HKStructFields[H *: T, F]] = {
-    (ab: A *: B) => headConv(ab.head) *: tailConv(ab.tail)
-  }
+type HKStructNamedFields[Labels <: Tuple, Types <: Tuple, F[_]] = (Labels, Types) match {
+  case (l *: EmptyTuple, t *: EmptyTuple) => (l, HKStructField[t, F])
+  case _ => Tuple.Zip[Labels, Tuple.Map[Types, [e] =>> HKStructField[e, F]]]
 }
 
-extension [T <: Tuple, F[_]] (fields: HKStructFields[T, F]) {
-  def toTupleMap: Tuple.Map[T, [e] =>> HKTree[e, F]] = fields
+opaque type HKStructFieldNormalizer[E, F[_]] = HKStructField[E, F] => HKTree[E, F]
+opaque type HKStructFieldsNormalizer[T <: Tuple, F[_]] = HKStructFields[T, F] => Tuple.Map[T, [e] =>> HKTree[e, F]]
+opaque type HKStructNamedFieldsNormalizer[Labels <: Tuple, Types <: Tuple, F[_]] = HKStructNamedFields[Labels, Types, F] => Tuple.Map[Types, [e] =>> HKTree[e, F]]
+
+object HKStructFieldNormalizer {
+  given [E, F[_]] (using typeTest: TypeTest[Any, HKTree[_, _]]) : HKStructFieldNormalizer[E, F] = (field: HKStructField[E, F]) => {
+    field match {
+      case typeTest(tree) => tree.asInstanceOf[HKTree[E, F]]
+      case _ => HKValue(field.asInstanceOf[F[E]])
+    }
+  }
+  def normalize[E, F[_]](field: HKStructField[E, F])(using normalizer: HKStructFieldNormalizer[E, F]): HKTree[E, F] = normalizer(field)
+}
+
+object HKStructFieldsNormalizer {
+  given [E, F[_]] (using HKStructFieldNormalizer[E, F]) : HKStructFieldsNormalizer[E *: EmptyTuple, F] = (field: HKStructField[E, F]) => {
+    HKStructFieldNormalizer.normalize(field) *: EmptyTuple
+  }
+  given [E1, E2, F[_]] (using HKStructFieldNormalizer[E1, F], HKStructFieldNormalizer[E2, F]) : HKStructFieldsNormalizer[(E1, E2), F] = (fields: (HKStructField[E1, F], HKStructField[E2, F])) => {
+    (HKStructFieldNormalizer.normalize(fields._1), HKStructFieldNormalizer.normalize(fields._2))
+  }
+  given [E1, E2, ES <: NonEmptyTuple, F[_]] (using headNormalizer: HKStructFieldNormalizer[E1, F], tailNormailzer: HKStructFieldsNormalizer[E2 *: ES, F]) : HKStructFieldsNormalizer[E1 *: E2 *: ES, F] = (fields: HKStructField[E1, F] *: HKStructFields[E2 *: ES, F]) => {
+    HKStructFieldNormalizer.normalize(fields.head) *: tailNormailzer(fields.tail)
+  }
+  def normalize[T <: Tuple, F[_]](fields: HKStructFields[T, F])(using normalizer: HKStructFieldsNormalizer[T, F]): Tuple.Map[T, [e] =>> HKTree[e, F]] = normalizer(fields)
+}
+
+object HKStructNamedFieldsNormalizer {
+  given [L, E, F[_]] (using HKStructFieldNormalizer[E, F]) : HKStructNamedFieldsNormalizer[L *: EmptyTuple, E *: EmptyTuple, F] = (pair: (L, HKStructField[E, F])) => {
+    HKStructFieldNormalizer.normalize(pair._2) *: EmptyTuple
+  }
+  given [L1, L2, E1, E2, F[_]] (using HKStructFieldNormalizer[E1, F], HKStructFieldNormalizer[E2, F]) : HKStructNamedFieldsNormalizer[(L1, L2), (E1, E2), F] = (fields: ((L1, HKStructField[E1, F]), (L2, HKStructField[E2, F]))) => {
+    (HKStructFieldNormalizer.normalize(fields._1._2), HKStructFieldNormalizer.normalize(fields._2._2))
+  }
+  given [L1, L2, LS <: NonEmptyTuple, E1, E2, ES <: NonEmptyTuple, F[_]] (using headNormalizer: HKStructFieldNormalizer[E1, F], tailNormailzer: HKStructNamedFieldsNormalizer[L2 *: LS, E2 *: ES, F]) : HKStructNamedFieldsNormalizer[L1 *: L2 *: LS, E1 *: E2 *: ES, F] = {
+    (fields: (L1, HKStructField[E1, F]) *: HKStructNamedFields[L2 *: LS, E2 *: ES, F]) => HKStructFieldNormalizer.normalize(fields.head._2) *: tailNormailzer(fields.tail)
+  }
+  def normalize[L <: Tuple, T <: Tuple, F[_]](fields: HKStructNamedFields[L, T, F])(using normalizer: HKStructNamedFieldsNormalizer[L, T, F]): Tuple.Map[T, [e] =>> HKTree[e, F]] = normalizer(fields)
 }
 
 object HKStruct extends Dynamic {
-  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(args: HKStructFields[mirror.MirroredElemTypes, F]): HKStruct[R, F] = new HKStructImpl(HKD.fromTupleMap(args.toTupleMap))
-  def applyDynamicNamed[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R])(params: Tuple.Zip[mirror.MirroredElemLabels, Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKStructField[e, F]]]): HKStruct[R, F] = {
-    val args = for (i <- 0 until params.size) yield {
-      params.productElement(i).asInstanceOf[(_, _)]._2
-    }
-    new HKStructImpl(HKD.fromTupleMap(Tuple.fromArray(args.toArray).asInstanceOf[Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKTree[e, F]]]))
+  def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R], normalizer: HKStructFieldsNormalizer[mirror.MirroredElemTypes, F])(fields: HKStructFields[mirror.MirroredElemTypes, F]): HKStruct[R, F] = {
+    new HKStructImpl(HKD.fromTupleMap(HKStructFieldsNormalizer.normalize(fields)))
+  }
+  def applyDynamicNamed[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R], normalizer: HKStructNamedFieldsNormalizer[mirror.MirroredElemLabels, mirror.MirroredElemTypes, F])(fields: HKStructNamedFields[mirror.MirroredElemLabels, mirror.MirroredElemTypes, F]): HKStruct[R, F] = {
+    new HKStructImpl(HKD.fromTupleMap(HKStructNamedFieldsNormalizer.normalize(fields)))
   }
 }
 
