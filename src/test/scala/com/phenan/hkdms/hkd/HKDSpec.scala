@@ -1,11 +1,24 @@
 package com.phenan.hkdms.hkd
 
+import cats.Id
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
 
 class HKDSpec extends AnyFunSuite {
   case class TestScore(score: Int)
   case class UserProfile(name: String, age: Int)
+
+  test("単独フィールド / 名前指定で生成 / Identity") {
+    val hkd = HKD[TestScore, Id](score = 55)
+    assert(hkd.score == 55)
+    assert(hkd.fold == TestScore(55))
+  }
+
+  test("単独フィールド / 名前指定なし / Identity") {
+    val hkd = HKD[TestScore, Id](55)
+    assert(hkd.score == 55)
+    assert(hkd.fold == TestScore(55))
+  }
 
   test("単独フィールド / 名前指定で生成 / フィールドはSome") {
     val hkd = HKD[TestScore, Option](
@@ -37,6 +50,23 @@ class HKDSpec extends AnyFunSuite {
     )
     assert(hkd.score == None)
     assert(hkd.fold == None)
+  }
+
+  test("複数フィールド / 名前指定で生成 / Identity") {
+    val hkd = HKD[UserProfile, Id](
+      name = "foo",
+      age = 30
+    )
+    assert(hkd.name == "foo")
+    assert(hkd.age == 30)
+    assert(hkd.fold == UserProfile("foo", 30))
+  }
+
+  test("複数フィールド / 名前指定なし / Identity") {
+    val hkd = HKD[UserProfile, Id]("foo", 30)
+    assert(hkd.name == "foo")
+    assert(hkd.age == 30)
+    assert(hkd.fold == UserProfile("foo", 30))
   }
 
   test("複数フィールド / 名前指定で生成 / フィールドは全てSome") {
