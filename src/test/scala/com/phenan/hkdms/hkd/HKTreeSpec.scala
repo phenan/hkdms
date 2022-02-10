@@ -3,7 +3,11 @@ package com.phenan.hkdms.hkd
 import org.scalatest.funsuite.AnyFunSuite
 
 class HKTreeSpec extends AnyFunSuite {
-  case class UserProfile(name: String, age: Int)
+  case class UserGroup (users: List[User])
+  sealed trait User
+  case class GuestUser (guestId: Int) extends User
+  case class RegisteredUser (userId: Int, profile: UserProfile) extends User
+  case class UserProfile (name: String, age: Int)
 
   test("単純なデータ型 / 名前指定で生成 / フィールドは全てSome") {
     val profile: HKStruct[UserProfile, Option] = HKStruct[UserProfile, Option](
@@ -27,5 +31,38 @@ class HKTreeSpec extends AnyFunSuite {
       Some(20)
     )
     assert(profile.fold == Some(UserProfile(name = "UserName", age = 20)))
+  }
+  
+  test("ネストしたデータ型 / 名前指定で生成 / フィールドは全てSome") {
+    val registeredUser = HKStruct[RegisteredUser, Option](
+      userId = Some(1234),
+      profile = HKStruct[UserProfile, Option](
+        name = Some("user name"),
+        age = Some(35)
+      )
+    )
+    assert(registeredUser.fold == Some(RegisteredUser(userId = 1234, profile = UserProfile(name = "user name", age = 35))))
+  }
+
+  test("ネストしたデータ型 / 名前指定で生成 / None フィールドあり") {
+    val registeredUser = HKStruct[RegisteredUser, Option](
+      userId = Some(1234),
+      profile = HKStruct[UserProfile, Option](
+        name = Some("user name"),
+        age = None
+      )
+    )
+    assert(registeredUser.fold == None)
+  }
+
+  test("ネストしたデータ型 / 名前指定なし / フィールドは全てSome") {
+    val registeredUser = HKStruct[RegisteredUser, Option](
+      Some(1234),
+      HKStruct[UserProfile, Option](
+        Some("user name"),
+        Some(35)
+      )
+    )
+    assert(registeredUser.fold == Some(RegisteredUser(userId = 1234, profile = UserProfile(name = "user name", age = 35))))
   }
 }
