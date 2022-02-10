@@ -41,7 +41,7 @@ object Main {
     val hktree: HKTree[Hoge, Option] = HKStruct[Foo, Option](
       i = Option(10),
       s = Option("str")
-    ).widen[Hoge]
+    )
 
     val hogeOpt: Option[Hoge] = hktree.fold
 
@@ -52,10 +52,10 @@ object Main {
         HKStruct[Foo, Option](
           Option(1),
           Option("one")
-        ).widen[Hoge],
+        ),
         HKStruct[Bar, Option](
           Option("bar")
-        ).widen[Hoge]
+        )
       )
     )
 

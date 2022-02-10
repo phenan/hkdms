@@ -113,6 +113,10 @@ object HKStructNamedFieldsNormalizer {
   def normalize[L <: Tuple, T <: Tuple, F[_]](fields: HKStructNamedFields[L, T, F])(using normalizer: HKStructNamedFieldsNormalizer[L, T, F]): Tuple.Map[T, [e] =>> HKTree[e, F]] = normalizer(fields)
 }
 
+object HKTree {
+  given [Sub, Super >: Sub, F[_]]: Conversion[HKTree[Sub, F], HKTree[Super, F]] = _.widen
+}
+
 object HKStruct extends Dynamic {
   def applyDynamic[R <: Product, F[_]](nameApply: "apply")(using mirror: Mirror.ProductOf[R], normalizer: HKStructFieldsNormalizer[mirror.MirroredElemTypes, F])(fields: HKStructFields[mirror.MirroredElemTypes, F]): HKStruct[R, F] = {
     new HKStructImpl(HKD.fromTupleMap(HKStructFieldsNormalizer.normalize(fields)))
