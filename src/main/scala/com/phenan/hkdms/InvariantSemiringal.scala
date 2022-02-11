@@ -1,7 +1,6 @@
 package com.phenan.hkdms
 
 import cats.{Alternative, InvariantMonoidal}
-import com.phenan.hkdms.iso.*
 import com.phenan.hkdms.syntax.*
 import com.phenan.hkdms.util.IndexedUnion
 
