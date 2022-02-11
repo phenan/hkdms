@@ -1,5 +1,6 @@
 package com.phenan.hkdms
 
+import cats.data.{NonEmptyChain, Validated}
 import org.scalatest.funsuite.AnyFunSuite
 
 class HKTreeSpec extends AnyFunSuite {
@@ -93,5 +94,21 @@ class HKTreeSpec extends AnyFunSuite {
       )
     )
     assert(userGroup.fold == Some(UserGroup(List(RegisteredUser(userId = 1234, profile = UserProfile(name = "user name", age = 35)), GuestUser(guestId = 5678)))))
+  }
+
+  test("Eitherで構築しておいてValidatedNecで取り出す") {
+    type Checked[T] = Either[String, T]
+    val checkedUser: HKTree[User, Checked] = HKStruct[RegisteredUser, Checked](
+      userId = Left("user id should be positive"),
+      profile = HKStruct[UserProfile, Checked](
+        name = Right("name"),
+        age = Left("age should be smaller than 1000")
+      )
+    )
+    assert(checkedUser.fold == Left("user id should be positive"))
+
+    val validated = checkedUser.foldMap([t] => (checked: Checked[t]) => Validated.fromEither(checked).toValidatedNec)
+
+    assert(validated == Validated.Invalid(NonEmptyChain("user id should be positive", "age should be smaller than 1000")))
   }
 }
