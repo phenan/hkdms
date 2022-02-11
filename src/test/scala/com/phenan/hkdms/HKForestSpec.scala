@@ -1,4 +1,4 @@
-package com.phenan.hkdms.hkd
+package com.phenan.hkdms
 
 import com.phenan.hkdms.InvariantSemiringal
 import com.phenan.hkdms.util.*

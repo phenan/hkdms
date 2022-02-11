@@ -1,4 +1,4 @@
-package com.phenan.hkdms.hkd
+package com.phenan.hkdms
 
 import cats.{Applicative, Traverse}
 import com.phenan.hkdms.util.*

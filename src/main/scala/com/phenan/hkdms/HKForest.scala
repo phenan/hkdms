@@ -1,7 +1,6 @@
-package com.phenan.hkdms.hkd
+package com.phenan.hkdms
 
 import cats.{InvariantMonoidal, SemigroupK}
-import com.phenan.hkdms.InvariantSemiringal
 import com.phenan.hkdms.util.*
 
 import scala.deriving.Mirror
