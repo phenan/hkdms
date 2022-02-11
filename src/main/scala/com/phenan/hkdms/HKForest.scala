@@ -12,11 +12,9 @@ sealed trait HKForest [R, F[_]] {
   def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R]
 
   def foldMap [G[_]](compiler: [t] => F[t] => G[t])(using invariantSemiringal: InvariantSemiringal[G]): G[R] = hmap(compiler).fold
-}
 
-extension [R, F[_]] (forest: => HKForest[R, F]) {
-  def *>: (prefix: HKForest[Unit, F]): HKForest[R, F] = new HKPrefixed(prefix, forest)
-  def :<* (postfix: HKForest[Unit, F]): HKForest[R, F] = new HKPostfixed(forest, postfix)
+  def *>: (prefix: HKProductElem[Unit, F])(using HKProductElemNormalizer[Unit, F]): HKForest[R, F] = new HKPrefixed(HKProductElemNormalizer.normalize(prefix), this)
+  def :<* (postfix: HKProductElem[Unit, F])(using HKProductElemNormalizer[Unit, F]): HKForest[R, F] = new HKPostfixed(this, HKProductElemNormalizer.normalize(postfix))
 }
 
 trait HKProduct [R <: Product, F[_]] extends HKForest[R, F] {
