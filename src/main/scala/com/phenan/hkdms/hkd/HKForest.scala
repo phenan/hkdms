@@ -2,8 +2,7 @@ package com.phenan.hkdms.hkd
 
 import cats.{InvariantMonoidal, SemigroupK}
 import com.phenan.hkdms.InvariantSemiringal
-import com.phenan.hkdms.syntax.*
-import com.phenan.hkdms.util.{IndexedUnion, TupleMaps}
+import com.phenan.hkdms.util.*
 
 import scala.deriving.Mirror
 import scala.language.dynamics

@@ -1,4 +1,4 @@
-package com.phenan.hkdms.syntax
+package com.phenan.hkdms.util
 
 import cats.InvariantMonoidal
 

@@ -1,7 +1,6 @@
-package com.phenan.hkdms.syntax
+package com.phenan.hkdms.util
 
 import cats.{Functor, SemigroupK}
-import com.phenan.hkdms.util.IndexedUnion
 
 extension [F[_]] (semigroupK: SemigroupK[F])(using functor: Functor[F]) {
   def combineAll[T <: Tuple](tupleMap: Tuple.Map[T, F]): F[IndexedUnion[T]] = {

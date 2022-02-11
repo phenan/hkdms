@@ -1,7 +1,6 @@
 package com.phenan.hkdms.hkd
 
 import cats.{Applicative, Traverse}
-import com.phenan.hkdms.syntax.*
 import com.phenan.hkdms.util.*
 
 import scala.collection.IterableFactory

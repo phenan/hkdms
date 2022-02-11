@@ -1,7 +1,6 @@
 package com.phenan.hkdms.hkd
 
 import cats.InvariantMonoidal
-import com.phenan.hkdms.syntax.*
 import com.phenan.hkdms.util.*
 
 import scala.deriving.Mirror

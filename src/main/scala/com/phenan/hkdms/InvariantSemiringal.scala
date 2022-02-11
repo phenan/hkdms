@@ -1,8 +1,7 @@
 package com.phenan.hkdms
 
 import cats.{Alternative, InvariantMonoidal}
-import com.phenan.hkdms.syntax.*
-import com.phenan.hkdms.util.IndexedUnion
+import com.phenan.hkdms.util.*
 
 trait InvariantSemiringal [F[_]] extends InvariantMonoidal[F] {
   def pure [A] (a: => A): F[A]
