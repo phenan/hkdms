@@ -65,4 +65,33 @@ class HKTreeSpec extends AnyFunSuite {
     )
     assert(registeredUser.fold == Some(RegisteredUser(userId = 1234, profile = UserProfile(name = "user name", age = 35))))
   }
+
+  test("サブタイピング") {
+    val user: HKTree[User, Option] = HKStruct[RegisteredUser, Option](
+      Some(1234),
+      HKStruct[UserProfile, Option](
+        Some("user name"),
+        Some(35)
+      )
+    )
+    assert(user.fold == Some(RegisteredUser(userId = 1234, profile = UserProfile(name = "user name", age = 35))))
+  }
+
+  test("リスト") {
+    val userGroup = HKStruct[UserGroup, Option](
+      HKList(List)(
+        HKStruct[RegisteredUser, Option](
+          userId = Some(1234),
+          profile = HKStruct[UserProfile, Option](
+            name = Some("user name"),
+            age = Some(35)
+          )
+        ),
+        HKStruct[GuestUser, Option](
+          guestId = Some(5678)
+        )
+      )
+    )
+    assert(userGroup.fold == Some(UserGroup(List(RegisteredUser(userId = 1234, profile = UserProfile(name = "user name", age = 35)), GuestUser(guestId = 5678)))))
+  }
 }
