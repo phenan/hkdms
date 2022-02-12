@@ -21,7 +21,7 @@ class HKForestSpec extends AnyFunSuite {
     def word(string: String): HKForest[Unit, Printer] = HKValue(Printer(_ => string))
   }
 
-  given InvariantSemiringal[Printer] = new InvariantSemiringal[Printer] {
+  given InvariantSemiringal[Printer] with {
     override def pure[A](a: => A): Printer[A] = {
       Printer[A] (value => "")
     }
@@ -39,7 +39,7 @@ class HKForestSpec extends AnyFunSuite {
     }
   }
 
-  given Defer[Printer] = new Defer[Printer] {
+  given Defer[Printer] with {
     override def defer[A](fa: => Printer[A]): Printer[A] = {
       Printer[A] (value => fa.show(value))
     }

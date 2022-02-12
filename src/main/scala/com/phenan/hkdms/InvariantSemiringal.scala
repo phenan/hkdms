@@ -15,7 +15,7 @@ trait InvariantSemiringal [F[_]] extends InvariantMonoidal[F] {
 }
 
 object InvariantSemiringal {
-  given [F[_]] (using alternative: Alternative[F]): InvariantSemiringal[F] = new InvariantSemiringal[F] {
+  given [F[_]] (using alternative: Alternative[F]): InvariantSemiringal[F] with {
     override def pure[A](a: => A): F[A] = alternative.pure(a)
     override def productAll[T <: Tuple](tupleMap: Tuple.Map[T, F]): F[T] = alternative.productAll(tupleMap)
     override def sumAll[T <: Tuple](tupleMap: Tuple.Map[T, F]): F[IndexedUnion[T]] = alternative.combineAll(tupleMap)
