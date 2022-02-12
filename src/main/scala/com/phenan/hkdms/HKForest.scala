@@ -1,6 +1,7 @@
 package com.phenan.hkdms
 
-import cats.{InvariantMonoidal, SemigroupK}
+import cats.{Defer, InvariantMonoidal, SemigroupK}
+import cats.data.NonEmptyList
 import com.phenan.hkdms.util.*
 
 import scala.deriving.Mirror
@@ -9,15 +10,27 @@ import scala.reflect.TypeTest
 
 sealed trait HKForest [R, F[_]] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKForest[R, G]
-  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R]
+  def fold (using invariantSemiringal: InvariantSemiringal[F], defer: Defer[F]): F[R]
 
-  def foldMap [G[_]](compiler: [t] => F[t] => G[t])(using invariantSemiringal: InvariantSemiringal[G]): G[R] = hmap(compiler).fold
+  def foldMap [G[_] : InvariantSemiringal : Defer](compiler: [t] => F[t] => G[t]): G[R] = hmap(compiler).fold
 
   def imap [U] (to: R => U)(from: U => R): HKForest[U, F] = new HKIMapped(this, to, from)
 
   def optional: HKForest[Option[R], F] = HKSum[Option[R], F](
     HKPure[None.type, F](None),
     imap[Some[R]](Some(_))(_.value)
+  )
+
+  def rep0: HKForest[List[R], F] = HKFix { f =>
+    HKSum[List[R], F](
+      HKProduct[::[R], F](this, f),
+      HKPure(Nil)
+    )
+  }
+
+  def rep1: HKForest[NonEmptyList[R], F] = HKProduct[NonEmptyList[R], F](
+    head = this,
+    tail = rep0
   )
 
   def *>: (prefix: HKProductElem[Unit, F])(using HKProductElemNormalizer[Unit, F]): HKForest[R, F] = new HKPrefixed(HKProductElemNormalizer.normalize(prefix), this)
@@ -34,38 +47,56 @@ trait HKSum [R, F[_]] extends HKForest[R, F] {
 
 class HKPrefixed [R, F[_]] (prefix: => HKForest[Unit, F], forest: HKForest[R, F]) extends HKForest[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKPrefixed[R, G] = new HKPrefixed[R, G](prefix.hmap(f), forest.hmap(f))
-  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = {
+  def fold (using invariantSemiringal: InvariantSemiringal[F], defer: Defer[F]): F[R] = {
     invariantSemiringal.productR(prefix.fold, forest.fold)
   }
 }
 
 class HKPostfixed [R, F[_]] (forest: => HKForest[R, F], postfix: HKForest[Unit, F]) extends HKForest[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKPostfixed[R, G] = new HKPostfixed[R, G](forest.hmap(f), postfix.hmap(f))
-  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = {
+  def fold (using invariantSemiringal: InvariantSemiringal[F], defer: Defer[F]): F[R] = {
     invariantSemiringal.productL(forest.fold, postfix.fold)
   }
 }
 
 case class HKPure [R, F[_]] (value: R) extends HKForest[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKPure[R, G] = HKPure(value)
-  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = invariantSemiringal.pure(value)
+  def fold (using invariantSemiringal: InvariantSemiringal[F], defer: Defer[F]): F[R] = invariantSemiringal.pure(value)
 }
 
 case class HKValue [R, F[_]] (value: F[R]) extends HKForest[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKValue[R, G] = HKValue(f[R](value))
-  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = value
+  def fold (using invariantSemiringal: InvariantSemiringal[F], defer: Defer[F]): F[R] = value
+}
+
+class HKRef [R] (private[hkdms] val value: Any)
+
+class HKDeref [R, F[_]] (ref: HKRef[R]) extends HKForest[R, F] {
+  def hmap [G[_]](f: [t] => F[t] => G[t]) = HKDeref(ref)
+  def fold (using invariantSemiringal: InvariantSemiringal[F], defer: Defer[F]): F[R] = {
+    // NOTE: hetero map 実装して environment として引き回せば型安全になりそうだけど、そこまでするよりキャストのほうが楽
+    ref.value.asInstanceOf[F[R]]
+  }
+}
+
+class HKFix [R, F[_]] private (fn: (=> HKRef[R]) => HKForest[R, F]) extends HKForest[R, F] {
+  def hmap [G[_]](f: [t] => F[t] => G[t]) = new HKFix[R, G]((ref) => fn(ref).hmap(f))
+  def fold (using invariantSemiringal: InvariantSemiringal[F], defer: Defer[F]): F[R] = {
+    lazy val fixed: F[R] = fn(HKRef(defer.defer(fixed))).fold
+    fixed
+  }
 }
 
 class HKIMapped [T, R, F[_]] (forest: HKForest[T, F], to: T => R, from: R => T) extends HKForest[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKIMapped[T, R, G] = new HKIMapped[T, R, G](forest.hmap(f), to, from)
-  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = invariantSemiringal.imap(forest.fold)(to)(from)
+  def fold (using invariantSemiringal: InvariantSemiringal[F], defer: Defer[F]): F[R] = invariantSemiringal.imap(forest.fold)(to)(from)
 }
 
 private class HKProductImpl [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKForest[e, F]])(using mirror: Mirror.ProductOf[R]) extends HKProduct[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKProduct[R, G] = {
     new HKProductImpl[R, G](hkd.map([u] => (hkt: HKForest[u, F]) => hkt.hmap(f)))
   }
-  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = {
+  def fold (using invariantSemiringal: InvariantSemiringal[F], defer: Defer[F]): F[R] = {
     hkd.foldMap([u] => (hkt: HKForest[u, F]) => hkt.fold)
   }
 }
@@ -74,7 +105,7 @@ private class HKSumImpl [R, F[_]] (using mirror: Mirror.SumOf[R])(sum: => Tuple.
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKSum[R, G] = {
     new HKSumImpl[R, G](using mirror)(TupleMaps.map(sum) { [a] => (forest: HKForest[a, F]) => forest.hmap(f) })
   }
-  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = {
+  def fold (using invariantSemiringal: InvariantSemiringal[F], defer: Defer[F]): F[R] = {
     val elems: Tuple.Map[mirror.MirroredElemTypes, F] = TupleMaps.map(sum) { [a] => (forest: HKForest[a, F]) => forest.fold }
     invariantSemiringal.imap[IndexedUnion[mirror.MirroredElemTypes], R](invariantSemiringal.sumAll(elems))(_.value.asInstanceOf[R])(r => IndexedUnion(r.asInstanceOf[Tuple.Union[mirror.MirroredElemTypes]], mirror.ordinal(r)))
   }
@@ -141,4 +172,8 @@ object HKProduct extends Dynamic {
 
 object HKSum extends Dynamic {
   def applyDynamic[R, F[_]](nameApply: "apply")(using mirror: Mirror.SumOf[R])(args: => Tuple.Map[mirror.MirroredElemTypes, [e] =>> HKForest[e, F]]): HKSum[R, F] = new HKSumImpl[R, F](using mirror)(args)
+}
+
+object HKFix {
+  def apply[R, F[_]](f: (=> HKForest[R, F]) => HKForest[R, F]): HKForest[R, F] = new HKFix(ref => f(HKDeref[R, F](ref)))
 }

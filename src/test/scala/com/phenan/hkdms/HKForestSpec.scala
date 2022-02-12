@@ -1,5 +1,6 @@
 package com.phenan.hkdms
 
+import cats.Defer
 import com.phenan.hkdms.InvariantSemiringal
 import com.phenan.hkdms.util.*
 import org.scalatest.funsuite.AnyFunSuite
@@ -35,6 +36,12 @@ class HKForestSpec extends AnyFunSuite {
 
     override def imap[A, B](printer: Printer[A])(f: A => B)(g: B => A): Printer[B] = {
       Printer[B] (value => printer.show(g(value)))
+    }
+  }
+
+  given Defer[Printer] = new Defer[Printer] {
+    override def defer[A](fa: => Printer[A]): Printer[A] = {
+      Printer[A] (value => fa.show(value))
     }
   }
 
@@ -79,5 +86,42 @@ class HKForestSpec extends AnyFunSuite {
 
     val printer = user.fold
     assert(printer.show(RegisteredUser(userId = 1234, profile = UserProfile(name = "user name", age = 35))) == "RegisteredUser(user id: 1234, UserProfile(name: user name, age: 35))")
+  }
+
+  test("List") {
+    import Printer._
+
+    def wrap[T](name: String)(printer: HKForest[T, Printer]): HKForest[T, Printer] = {
+      word(s"$name(") *>: printer :<* word(")")
+    }
+
+    val user = HKSum[User, Printer](
+      wrap("GuestUser") {
+        HKProduct[GuestUser, Printer](
+          guestId = word("guest id: ") *>: int
+        )
+      },
+      wrap("RegisteredUser") {
+        HKProduct[RegisteredUser, Printer](
+          userId = word("user id: ") *>: int :<* word(", "),
+          profile = wrap("UserProfile") {
+            HKProduct[UserProfile, Printer](
+              name = word("name: ") *>: string :<* word(", "),
+              age = word("age: ") *>: int
+            )
+          }
+        )
+      }
+    )
+
+    val userGroup = wrap("UserGroup") {
+      HKProduct[UserGroup, Printer](user.rep0)
+    }
+
+    val printer = userGroup.fold
+
+    val result = printer.show(UserGroup(List(RegisteredUser(userId = 1234, profile = UserProfile(name = "user name", age = 35)))))
+
+    assert(result == "UserGroup(RegisteredUser(user id: 1234, UserProfile(name: user name, age: 35)))")
   }
 }
