@@ -13,6 +13,8 @@ sealed trait HKForest [R, F[_]] {
 
   def foldMap [G[_]](compiler: [t] => F[t] => G[t])(using invariantSemiringal: InvariantSemiringal[G]): G[R] = hmap(compiler).fold
 
+  def imap [U] (to: R => U)(from: U => R): HKForest[U, F] = new HKIMapped(this, to, from)
+
   def *>: (prefix: HKProductElem[Unit, F])(using HKProductElemNormalizer[Unit, F]): HKForest[R, F] = new HKPrefixed(HKProductElemNormalizer.normalize(prefix), this)
   def :<* (postfix: HKProductElem[Unit, F])(using HKProductElemNormalizer[Unit, F]): HKForest[R, F] = new HKPostfixed(this, HKProductElemNormalizer.normalize(postfix))
 }
@@ -42,6 +44,11 @@ class HKPostfixed [R, F[_]] (forest: => HKForest[R, F], postfix: HKForest[Unit, 
 case class HKValue [R, F[_]] (value: F[R]) extends HKForest[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKValue[R, G] = HKValue(f[R](value))
   def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = value
+}
+
+class HKIMapped [T, R, F[_]] (forest: HKForest[T, F], to: T => R, from: R => T) extends HKForest[R, F] {
+  def hmap [G[_]](f: [t] => F[t] => G[t]): HKIMapped[T, R, G] = new HKIMapped[T, R, G](forest.hmap(f), to, from)
+  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = invariantSemiringal.imap(forest.fold)(to)(from)
 }
 
 private class HKProductImpl [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKForest[e, F]])(using mirror: Mirror.ProductOf[R]) extends HKProduct[R, F] {
