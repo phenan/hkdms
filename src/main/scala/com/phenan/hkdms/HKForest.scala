@@ -15,6 +15,11 @@ sealed trait HKForest [R, F[_]] {
 
   def imap [U] (to: R => U)(from: U => R): HKForest[U, F] = new HKIMapped(this, to, from)
 
+  def optional: HKForest[Option[R], F] = HKSum[Option[R], F](
+    HKPure[None.type, F](None),
+    imap[Some[R]](Some(_))(_.value)
+  )
+
   def *>: (prefix: HKProductElem[Unit, F])(using HKProductElemNormalizer[Unit, F]): HKForest[R, F] = new HKPrefixed(HKProductElemNormalizer.normalize(prefix), this)
   def :<* (postfix: HKProductElem[Unit, F])(using HKProductElemNormalizer[Unit, F]): HKForest[R, F] = new HKPostfixed(this, HKProductElemNormalizer.normalize(postfix))
 }
@@ -39,6 +44,11 @@ class HKPostfixed [R, F[_]] (forest: => HKForest[R, F], postfix: HKForest[Unit, 
   def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = {
     invariantSemiringal.productL(forest.fold, postfix.fold)
   }
+}
+
+case class HKPure [R, F[_]] (value: R) extends HKForest[R, F] {
+  def hmap [G[_]](f: [t] => F[t] => G[t]): HKPure[R, G] = HKPure(value)
+  def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = invariantSemiringal.pure(value)
 }
 
 case class HKValue [R, F[_]] (value: F[R]) extends HKForest[R, F] {
