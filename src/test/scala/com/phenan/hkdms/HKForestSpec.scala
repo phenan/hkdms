@@ -14,10 +14,10 @@ class HKForestSpec extends AnyFunSuite {
   case class Printer [T](show: T => String)
 
   object Printer {
-    val int: HKForest[Int, Printer] = HKLeaf(Printer(_.toString))
-    val string: HKForest[String, Printer] = HKLeaf(Printer(identity))
+    val int: HKForest[Int, Printer] = HKValue(Printer(_.toString))
+    val string: HKForest[String, Printer] = HKValue(Printer(identity))
 
-    def word(string: String): HKForest[Unit, Printer] = HKLeaf(Printer(_ => string))
+    def word(string: String): HKForest[Unit, Printer] = HKValue(Printer(_ => string))
   }
 
   given InvariantSemiringal[Printer] = new InvariantSemiringal[Printer] {

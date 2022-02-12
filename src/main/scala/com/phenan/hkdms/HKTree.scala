@@ -37,8 +37,8 @@ class HKMapped [T, R, F[_]] (tree: HKTree[T, F], mapper: T => R) extends HKTree[
   }
 }
 
-case class HKValue [R, F[_]] (value: F[R]) extends HKTree[R, F] {
-  def hmap [G[_]](f: [t] => F[t] => G[t]): HKValue[R, G] = HKValue(f[R](value))
+case class HKLeaf [R, F[_]] (value: F[R]) extends HKTree[R, F] {
+  def hmap [G[_]](f: [t] => F[t] => G[t]): HKLeaf[R, G] = HKLeaf(f[R](value))
   def fold (using applicative: Applicative[F]): F[R] = value
 }
 
@@ -80,7 +80,7 @@ object HKStructFieldNormalizer {
   given [E, F[_]] (using typeTest: TypeTest[Any, HKTree[_, _]]) : HKStructFieldNormalizer[E, F] = (field: HKStructField[E, F]) => {
     field match {
       case typeTest(tree) => tree.asInstanceOf[HKTree[E, F]]
-      case _ => HKValue(field.asInstanceOf[F[E]])
+      case _ => HKLeaf(field.asInstanceOf[F[E]])
     }
   }
   def normalize[E, F[_]](field: HKStructField[E, F])(using normalizer: HKStructFieldNormalizer[E, F]): HKTree[E, F] = normalizer(field)

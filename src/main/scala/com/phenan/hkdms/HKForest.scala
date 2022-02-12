@@ -39,8 +39,8 @@ class HKPostfixed [R, F[_]] (forest: => HKForest[R, F], postfix: HKForest[Unit, 
   }
 }
 
-case class HKLeaf [R, F[_]] (value: F[R]) extends HKForest[R, F] {
-  def hmap [G[_]](f: [t] => F[t] => G[t]): HKLeaf[R, G] = HKLeaf(f[R](value))
+case class HKValue [R, F[_]] (value: F[R]) extends HKForest[R, F] {
+  def hmap [G[_]](f: [t] => F[t] => G[t]): HKValue[R, G] = HKValue(f[R](value))
   def fold (using invariantSemiringal: InvariantSemiringal[F]): F[R] = value
 }
 
@@ -82,7 +82,7 @@ opaque type HKProductNamedElemsNormalizer[L <: Tuple, T <: Tuple, F[_]] = HKProd
 object HKProductElemNormalizer {
   given [E, F[_]] (using typeTest: TypeTest[Any, HKForest[_, _]]): HKProductElemNormalizer[E, F] = {
     case typeTest(forest) => forest.asInstanceOf[HKForest[E, F]]
-    case otherwise        => HKLeaf(otherwise.asInstanceOf[F[E]])
+    case otherwise        => HKValue(otherwise.asInstanceOf[F[E]])
   }
   def normalize[E, F[_]](elem: HKProductElem[E, F])(using normalizer: HKProductElemNormalizer[E, F]): HKForest[E, F] = normalizer(elem)
 }
