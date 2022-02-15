@@ -26,12 +26,12 @@ class HKForestSpec extends AnyFunSuite {
       Printer[A] (value => "")
     }
 
-    override def productAll[T <: Tuple](tupleMap: Tuple.Map[T, Printer]): Printer[T] = {
-      Printer[T] (_.foldMap(showFunctionMap(tupleMap)))
+    override def product[A, B](fa: Printer[A], fb: Printer[B]): Printer[(A, B)] = {
+      Printer[(A, B)] ((a, b) => fa.show(a) ++ fb.show(b))
     }
 
-    override def sumAll[T <: Tuple](tupleMap: Tuple.Map[T, Printer]): Printer[IndexedUnion[T]] = {
-      Printer[IndexedUnion[T]] (_.fold(showFunctionMap(tupleMap)))
+    override def sum[A, B](fa: Printer[A], fb: Printer[B]): Printer[Either[A, B]] = {
+      Printer[Either[A, B]] (_.fold(fa.show, fb.show))
     }
 
     override def imap[A, B](printer: Printer[A])(f: A => B)(g: B => A): Printer[B] = {
