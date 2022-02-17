@@ -6,7 +6,6 @@ import com.phenan.hkdms.util.*
 import scala.collection.IterableFactory
 import scala.deriving.Mirror
 import scala.language.dynamics
-import scala.reflect.TypeTest
 
 sealed trait HKTree [R, F[_]] {
   def map [U] (f: R => U) : HKTree[U, F] = new HKMapped(this, f)
@@ -77,9 +76,9 @@ opaque type HKStructFieldsNormalizer[T <: Tuple, F[_]] = HKStructFields[T, F] =>
 opaque type HKStructNamedFieldsNormalizer[Labels <: Tuple, Types <: Tuple, F[_]] = HKStructNamedFields[Labels, Types, F] => Tuple.Map[Types, [e] =>> HKTree[e, F]]
 
 object HKStructFieldNormalizer {
-  given [E, F[_]] (using typeTest: TypeTest[Any, HKTree[_, _]]) : HKStructFieldNormalizer[E, F] = (field: HKStructField[E, F]) => {
+  given [E, F[_]] : HKStructFieldNormalizer[E, F] = (field: HKStructField[E, F]) => {
     field match {
-      case typeTest(tree) => tree.asInstanceOf[HKTree[E, F]]
+      case tree: HKTree[_, _] => tree.asInstanceOf[HKTree[E, F]]
       case _ => HKLeaf(field.asInstanceOf[F[E]])
     }
   }

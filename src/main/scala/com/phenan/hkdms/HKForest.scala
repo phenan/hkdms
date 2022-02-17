@@ -6,7 +6,6 @@ import com.phenan.hkdms.util.*
 
 import scala.deriving.Mirror
 import scala.language.dynamics
-import scala.reflect.TypeTest
 
 sealed trait HKForest [R, F[_]] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKForest[R, G]
@@ -128,9 +127,9 @@ opaque type HKProductElemsNormalizer[T <: Tuple, F[_]] = HKProductElems[T, F] =>
 opaque type HKProductNamedElemsNormalizer[L <: Tuple, T <: Tuple, F[_]] = HKProductNamedElems[L, T, F] => Tuple.Map[T, [e] =>> HKForest[e, F]]
 
 object HKProductElemNormalizer {
-  given [E, F[_]] (using typeTest: TypeTest[Any, HKForest[_, _]]): HKProductElemNormalizer[E, F] = {
-    case typeTest(forest) => forest.asInstanceOf[HKForest[E, F]]
-    case otherwise        => HKValue(otherwise.asInstanceOf[F[E]])
+  given [E, F[_]] : HKProductElemNormalizer[E, F] = {
+    case forest: HKForest[_, _] => forest.asInstanceOf[HKForest[E, F]]
+    case otherwise              => HKValue(otherwise.asInstanceOf[F[E]])
   }
   def normalize[E, F[_]](elem: HKProductElem[E, F])(using normalizer: HKProductElemNormalizer[E, F]): HKForest[E, F] = normalizer(elem)
 }
