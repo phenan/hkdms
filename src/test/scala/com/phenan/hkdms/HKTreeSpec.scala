@@ -107,7 +107,7 @@ class HKTreeSpec extends AnyFunSuite {
     )
     assert(checkedUser.fold == Left("user id should be positive"))
 
-    val validated = checkedUser.foldMap([t] => (checked: Checked[t]) => Validated.fromEither(checked).toValidatedNec)
+    val validated = checkedUser.foldMap { [t] => (checked: Checked[t]) => Validated.fromEither(checked).toValidatedNec }
 
     assert(validated == Validated.Invalid(NonEmptyChain("user id should be positive", "age should be smaller than 1000")))
   }

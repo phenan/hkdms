@@ -93,7 +93,7 @@ class HKIMapped [T, R, F[_]] (forest: HKForest[T, F], to: T => R, from: R => T) 
 
 private class HKProductImpl [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKForest[e, F]])(using mirror: Mirror.ProductOf[R]) extends HKProduct[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKProduct[R, G] = {
-    new HKProductImpl[R, G](hkd.map([u] => (hkt: HKForest[u, F]) => hkt.hmap(f)))
+    new HKProductImpl[R, G](hkd.hmap([u] => (hkt: HKForest[u, F]) => hkt.hmap(f)))
   }
   def fold (using invariantSemiringal: InvariantSemiringal[F], defer: Defer[F]): F[R] = {
     hkd.foldMap([u] => (hkt: HKForest[u, F]) => hkt.fold)

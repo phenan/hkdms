@@ -43,7 +43,7 @@ case class HKLeaf [R, F[_]] (value: F[R]) extends HKTree[R, F] {
 
 private class HKStructImpl [R <: Product, F[_]] (hkd: HKD[R, [e] =>> HKTree[e, F]])(using mirror: Mirror.ProductOf[R]) extends HKStruct[R, F] {
   def hmap [G[_]](f: [t] => F[t] => G[t]): HKStruct[R, G] = {
-    new HKStructImpl(hkd.map([u] => (hkt: HKTree[u, F]) => hkt.hmap(f)))
+    new HKStructImpl(hkd.hmap([u] => (hkt: HKTree[u, F]) => hkt.hmap(f)))
   }
   def fold (using applicative: Applicative[F]): F[R] = {
     hkd.foldMap([u] => (hkt: HKTree[u, F]) => hkt.fold)
